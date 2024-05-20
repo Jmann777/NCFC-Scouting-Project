@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "ncfc player model"
+version = "0.1"
+description = ""
+authors = ["Jmann777 <87671742+Jmann777@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.2"
+mplsoccer = "^1.2.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
