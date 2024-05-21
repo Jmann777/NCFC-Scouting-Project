@@ -1,8 +1,195 @@
 import statsbomb_jm as sbj
+import pandas as pd
+import numpy as np
 
-pl_events = sbj.events_season(2,27)
+pl_events = sbj.events_season(2, 27)
+pl_shots = sbj.shots_season(2, 27)
 
-naismith_events = pl_events.loc[pl_events["player_name"] == "Steven Naismith"]
+naismith_events = pl_events.loc[pl_events["player_name"] == "Steven Naismith"].reset_index()
+naismith_ncfc = naismith_events.loc[naismith_events["team_name"] == "Norwich City"].reset_index()
+naismith_everton = naismith_events.loc[naismith_events["team_name"] == "Everton"].reset_index()
+naismith_shots = pl_shots.loc[pl_shots["player_name"] == "Steven Naismith"].reset_index()
+naismith_shots_ncfc = naismith_shots[naismith_shots["team_name"] == "Norwich City"].reset_index()
+naismith_shots_everton = naismith_shots[naismith_shots["team_name"] == "Everton"].reset_index()
+
+#todo save naismith dataframes
+#todo do I want to add ball receipts in final third?
+
+
+# todo calculate player minutes with event data or find dataset
+
+# Role + playing style
+# Average position
+
+
+# Offensive Goal - npGoals, Shots, npxG, shot selection (xG/shots), finishing (Goals-xG) #todo remember to pass shot logic
+def shot_statistics(shots) -> pd.DataFrame:
+    """ Obtains and adjusts the number shots, non-penalty goals, npxG as well as assessing shot selection (xG/shots)
+    and quality of finishing (non-penalty goals - npxG)
+
+    Returns:
+    - shot_stats (pd.DataFrame): Dataframe containing shot related data for Naismith. Specifically, shots, npG, npxG,
+    shot selections and quality of finishing
+    """
+    # Shots
+    shots_player: pd.DataFrame = shots.size().reset_index(name='shots')
+    shot_per90: pd.DataFrame = shots_player.merge(m_played, on="player_name")  # todo find minutes played data
+    shot_per90.loc[shot_per90['Player_Minutes'] > 400, "shot_p90"] = (
+            (shot_per90["shots"] / shot_per90['Player_Minutes']) * 90)
+
+    # Goals
+    goals: pd.Series = shots.outcome_name.apply(lambda cell: 1 if cell == 'Goal' else 0)
+    shots["non_pen_goals"] = goals  # todo might need to consider non_pen goals
+    npg_player: pd.DataFrame = shots[["player_id", "player_name", "non_pen_goals"]]
+    # npg_player = npg_player.groupby(["player_id", "player_name"])["non_pen_goals"].sum().reset_index()
+    npg_per90: pd.DataFrame = npg_player.merge(m_played, on="player_name")
+    npg_per90.loc[npg_per90['Player_Minutes'] > 400, "npg_p90"] = (
+            (npg_per90["non_pen_goals"] / npg_per90['Player_Minutes']) * 90)
+
+    # xG
+    xg_player: pd.DataFrame = shots["shot_statsbomb_xg"].sum()
+    xg_per90: pd.DataFrame = xg_player.merge(m_played, on="player_name")
+    xg_per90.loc[xg_per90['Player_Minutes'] > 400, "xg_p90"] = (
+            (xg_per90["shot_statsbomb_xg"] / xg_per90['Player_Minutes']) * 90)
+    xg_per90 = xg_per90.sort_values(by='player_id').reset_index(drop=True)
+
+    # Shot selection and quality
+    shot_selection = xg_per90["xg_p90"] / shot_per90["shot_p90"]
+    finish_quality = npg_per90["npg_p90"] - xg_per90["xg_p90"]
+
+    shot_stats: pd.DataFrame = pd.concat([shot_per90,
+                                          npg_per90.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
+                                          xg_per90.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
+                                          shot_selection.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
+                                          finish_quality.drop(columns=['player_name', 'Player_Minutes', 'player_id'])],
+                                         axis=1)
+
+    return shot_stats
+
+
+# Offensive playmaking - Assists, Prog passes, key passes, key pass xG, progressie carries completed, 1v1s completed, pass completion rate
+def pass_statistics(events: pd.DataFrame, shots: pd.DataFrame) -> pd.DataFrame:
+    """ Obtains and adjusts the number assists, progressive passes, key passes, key pass xG, and pass completion rate
+    Key passes are defined as passes that resulted in a shot
+
+    Parameters:
+    - shots (pd.DataFrame): Dataframe containing shot data from statsbomb
+    - events_xg (pd.DataFrame): Dataframe containing all events
+
+    Returns:
+    - pass_data (pd.DataFrame): Dataframe containing pass related data for all players. Specifically, number of assists,
+    key passes, progressive passes, key pass xG, and pass completion rate
+    """
+    # Assists
+    passes = events.loc[events["type_name"] == "Pass"]
+    assists: pd.Series = passes.pass_goal_assist.fillna(0).apply(lambda cell: 0 if cell == 0 else 1)
+    passes['assists'] = assists
+    assist_player: pd.DataFrame = passes[["player_id", "player_name", "assists"]]
+    # assist_player = assist_player.groupby(["player_id", "player_name"])["assists"].sum().reset_index()
+    assist_per90: pd.DataFrame = assist_player.merge(m_played, on="player_name")
+    assist_per90.loc[assist_per90['Player_Minutes'] > 400, "assists_p90"] = (
+            (assist_per90["assists"] / assist_per90['Player_Minutes']) * 90)
+
+    # Key passes
+    key_passes: pd.Series = passes.pass_shot_assist.fillna(0).apply(lambda cell: 0 if cell == 0 else 1)
+    passes['key_passes'] = key_passes
+    key_passes_player: pd.DataFrame = passes[["player_id", "player_name", "key_passes"]]
+    # key_passes_player = key_passes_player.groupby(["player_id", "player_name"])["key_passes"].sum().reset_index()
+    key_passes_per90: pd.DataFrame = key_passes_player.merge(m_played, on="player_name")
+    key_passes_per90.loc[key_passes_per90['Player_Minutes'] > 400, "key_pass_p90"] = (
+            (key_passes_per90["key_passes"] / key_passes_per90['Player_Minutes']) * 90)
+
+    # Key pass xG
+    shots['key_passes'] = key_passes
+    key_pass_events: pd.DataFrame = shots.loc[
+        (shots["type_name"].isin(["Pass", "Shot"])) & (
+                (shots["key_passes"] == 1) | (shots["type_name"] == "Shot"))]
+    key_pass_events = key_pass_events.sort_values(by="possession")
+    num_possession: int = max(key_pass_events["possession"].unique())
+    for i in range(num_possession + 1):
+        possession_chain: pd.DataFrame = key_pass_events.loc[key_pass_events["possession"] == i].sort_values(by="index")
+        if len(possession_chain) > 0:
+            if possession_chain.iloc[-1]["type_name"] == "Shot":
+                xg: float = possession_chain.iloc[-1]["shot_statsbomb_xg"]
+                key_pass_events.loc[key_pass_events["possession"] == i, 'shot_statsbomb_xg'] = xg
+    key_pass_events = key_pass_events.loc[key_pass_events["key_passes"] == 1]
+    key_pass_xg_player: pd.DataFrame = key_pass_events.groupby("player_name")["shots_statsbomb_xg"].sum().reset_index()
+    key_pass_xg_player.rename(columns={"our_xg": "key_pass_xg"}, inplace=True)
+    key_pass_xg_player = key_pass_xg_player.merge(m_played, on="player_name")
+    key_pass_xg_player.loc[key_pass_xg_player['Player_Minutes'] > 400, "key_pass_xg_p90"] = (
+            (key_pass_xg_player["key_pass_xg"] / key_pass_xg_player['Player_Minutes']) * 90)
+
+    # Pass completion rate
+    successful = passes.loc[passes["outcome_name"] == "nan"]
+    unsuccessful = passes.loc[passes["outcome_name"] == "Incomplete"]
+    completion_rate = successful / unsuccessful * 100
+
+    # Progressive passes
+    successful["start"] = np.sqrt(np.square(120 - successful["x"]) + np.square(40 - successful["y"]))
+    successful["end"] = np.sqrt(np.square(120 - successful["end_x"]) + np.square(40 - successful["end_y"]))
+    successful["progressive"] = [(successful['end'][x]) / (successful["start"][x])
+                                 < .75 for x in range(len(successful.start))]
+    prog_passes = successful["progressive"].reset_index()
+    prog_passes.loc[prog_passes['Player_Minutes'] > 400, "key_pass_xg_p90"] = (
+            (key_pass_xg_player["key_pass_xg"] / key_pass_xg_player['Player_Minutes']) * 90)
+    #todo  how to normalise per 90?
+
+    pass_stats: pd.DataFrame = pd.concat([assist_per90,
+                                          key_passes_per90.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
+                                          key_pass_xg_player.drop(columns=['player_name', 'Player_Minutes']),
+                                          prog_passes,
+                                          completion_rate], axis=1)
+
+    return pass_stats
+
+
+def dribble_statistics(events):
+    """ Obtains number of progressive carries, 1v1s, and success rates
+
+    Parameters:
+    - events (pd.DataFrame): Dataframe containing all events
+
+    Returns:
+    - dribble_data (pd.DataFrame): Dataframe containing dribble related data for all players. Specifically, progressive carries,
+    final third carries, and 1v1s.
+
+    """
+    carries = events[(events["type_name"] == "Carry")]
+    carries.merge(m_played, on="player_name")
+    # Progressive carries
+    carries["start"] = np.sqrt(np.square(120 - carries["x"]) + np.square(40 - carries["y"]))
+    carries["end"] = np.sqrt(np.square(120 - carries["end_x"]) + np.square(40 - carries["end_y"]))
+    carries["progressive"] = [(carries['end'][x]) / (carries["start"][x])< .90 for x in range(len(carries.start))]
+    prog_carries = carries["progressive"]
+    prog_carries.loc[prog_carries['Player_Minutes'] > 400, "prog_carries_p90"] = (
+            (prog_carries.sum() / prog_carries['Player_Minutes']) * 90)
+
+    # 1v1
+    take_ons = events[(events["type_name"] == "Dribble")]
+    take_ons.merge(m_played, on="player_name")
+    successful_take_ons = take_ons[(take_ons["outcome_name"] == "Complete")]
+    successful_take_ons.loc[successful_take_ons['Player_Minutes'] > 400, "succ_take_ons_p90"] = (
+            (successful_take_ons.sum() / successful_take_ons['Player_Minutes']) * 90)
+    take_on_rate = successful_take_ons.sum() - take_ons.sum()
+
+
+    dribble_stats: pd.DataFrame = pd.concat([prog_carries,
+                                          successful_take_ons.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
+                                          take_on_rate.drop(columns=['player_name']),
+], axis=1)
+
+    return dribble_stats
+
+
+
+
+# Defensive - Pressures, pressures in the final third, ball recoveries/tackles
+# def defensive_statistics(events):
+    # Pressures
+    # Pressures in the final third
+    # Ball recoveries in final third
+
+
 print(naismith_events.size)
 
 l
