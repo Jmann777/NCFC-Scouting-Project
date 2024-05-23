@@ -1,25 +1,72 @@
 import statsbomb_jm as sbj
 import pandas as pd
 import numpy as np
+import matplotlib as plt
+from mplsoccer import Pitch
 
+# Data Import
 pl_events = sbj.events_season(2, 27)
 pl_shots = sbj.shots_season(2, 27)
 
+# Data setup - Filter down to player events + shots per team
 naismith_events = pl_events.loc[pl_events["player_name"] == "Steven Naismith"].reset_index()
+naismith_events.to_pickle(naismith_events)
 naismith_ncfc = naismith_events.loc[naismith_events["team_name"] == "Norwich City"].reset_index()
+naismith_ncfc.to_pickel(naismith_ncfc)
 naismith_everton = naismith_events.loc[naismith_events["team_name"] == "Everton"].reset_index()
+naismith_everton.to_pickel(naismith_everton)
 naismith_shots = pl_shots.loc[pl_shots["player_name"] == "Steven Naismith"].reset_index()
-naismith_shots_ncfc = naismith_shots[naismith_shots["team_name"] == "Norwich City"].reset_index()
-naismith_shots_everton = naismith_shots[naismith_shots["team_name"] == "Everton"].reset_index()
+naismith_shots.to_pickle(naismith_shots)
 
-#todo save naismith dataframes
-#todo do I want to add ball receipts in final third?
+# Minutes played
+#for i, match_id in pl_events():
+    # Order events
+#    pl_events.sort_values(by="Minute") #todo this may sort all by minute rather than match id?
+    # Define time events e.g. Start of halves, end of halves, position change, substitution
+    # "Period" = half, ["type_name"] == "Half Start/End", ["type_name"] == "Tactical Shift", ["type_name"] == "Substitution"
 
 
+# naismith_shots_ncfc = naismith_shots[naismith_shots["team_name"] == "Norwich City"].reset_index()
+# naismith_shots_everton = naismith_shots[naismith_shots["team_name"] == "Everton"].reset_index()
+
+# todo do I want to add ball receipts in final third?
 # todo calculate player minutes with event data or find dataset
+# todo sort merge and drop specifications
+# todo do I use len(df) to count instead of .sum?
 
 # Role + playing style
 # Average position
+def average_pass_lcoation(events):
+    passes = events[events["type_name"] == "Pass"]
+    scatter_df = pd.DataFrame()
+    for i, name in enumerate(passes["player_name"].unique()):
+        passx = passes.loc[passes["player_name"] == name]["x"].to_numpy()
+        recx = passx.loc[passes["pass_recipient_name"] == name]["end_x"].to_numpy()
+        passy = passes.loc[passes["player_name"] == name]["y"].to_numpy()
+        recy = passy.loc[passes["pass_recipient_name"] == name]["end_y"].to_numpy()
+        scatter_df.at[i, "player_name"] = name
+        scatter_df.at[i, "x"] = np.mean(np.concatenate([passx, recx]))
+        scatter_df.at[i, "y"] = np.mean(np.concatenate([passy, recy]))
+
+        # Drawing pitch
+        pitch = Pitch(line_color='grey')
+        fig, ax = pitch.grid(grid_height=0.9, title_height=0.06, axis=False,
+                             endnote_height=0.04, title_space=0, endnote_space=0)
+        # Scatter the location on the pitch
+        pitch.scatter(scatter_df.x, scatter_df.y, s=scatter_df.marker_size, color='red', edgecolors='grey', linewidth=1,
+                      alpha=1, ax=ax["pitch"], zorder=3)
+        # annotating player name
+        for i, row in scatter_df.iterrows():
+            pitch.annotate(row.player_name, xy=(row.x, row.y), c='black', va='center', ha='center', weight="bold",
+                           size=16, ax=ax["pitch"], zorder=4)
+
+        fig.suptitle("Naismith average pass and reception location", fontsize=30)
+        plt.show()
+
+average_pass_lcoation(naismith_events)
+
+
+
 
 
 # Offensive Goal - npGoals, Shots, npxG, shot selection (xG/shots), finishing (Goals-xG) #todo remember to pass shot logic
@@ -67,7 +114,7 @@ def shot_statistics(shots) -> pd.DataFrame:
     return shot_stats
 
 
-# Offensive playmaking - Assists, Prog passes, key passes, key pass xG, progressie carries completed, 1v1s completed, pass completion rate
+# Offensive playmaking
 def pass_statistics(events: pd.DataFrame, shots: pd.DataFrame) -> pd.DataFrame:
     """ Obtains and adjusts the number assists, progressive passes, key passes, key pass xG, and pass completion rate
     Key passes are defined as passes that resulted in a shot
@@ -132,7 +179,7 @@ def pass_statistics(events: pd.DataFrame, shots: pd.DataFrame) -> pd.DataFrame:
     prog_passes = successful["progressive"].reset_index()
     prog_passes.loc[prog_passes['Player_Minutes'] > 400, "key_pass_xg_p90"] = (
             (key_pass_xg_player["key_pass_xg"] / key_pass_xg_player['Player_Minutes']) * 90)
-    #todo  how to normalise per 90?
+
 
     pass_stats: pd.DataFrame = pd.concat([assist_per90,
                                           key_passes_per90.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
@@ -159,7 +206,7 @@ def dribble_statistics(events):
     # Progressive carries
     carries["start"] = np.sqrt(np.square(120 - carries["x"]) + np.square(40 - carries["y"]))
     carries["end"] = np.sqrt(np.square(120 - carries["end_x"]) + np.square(40 - carries["end_y"]))
-    carries["progressive"] = [(carries['end'][x]) / (carries["start"][x])< .90 for x in range(len(carries.start))]
+    carries["progressive"] = [(carries['end'][x]) / (carries["start"][x]) < .90 for x in range(len(carries.start))]
     prog_carries = carries["progressive"]
     prog_carries.loc[prog_carries['Player_Minutes'] > 400, "prog_carries_p90"] = (
             (prog_carries.sum() / prog_carries['Player_Minutes']) * 90)
@@ -172,24 +219,29 @@ def dribble_statistics(events):
             (successful_take_ons.sum() / successful_take_ons['Player_Minutes']) * 90)
     take_on_rate = successful_take_ons.sum() - take_ons.sum()
 
-
     dribble_stats: pd.DataFrame = pd.concat([prog_carries,
-                                          successful_take_ons.drop(columns=['player_name', 'Player_Minutes', 'player_id']),
-                                          take_on_rate.drop(columns=['player_name']),
-], axis=1)
+                                             successful_take_ons.drop(
+                                                 columns=['player_name', 'Player_Minutes', 'player_id']),
+                                             take_on_rate.drop(columns=['player_name']),
+                                             ], axis=1)
 
     return dribble_stats
 
 
-
-
-# Defensive - Pressures, pressures in the final third, ball recoveries/tackles
-# def defensive_statistics(events):
+# Defensive -
+def defensive_statistics(events):
+    """ xxx """
     # Pressures
+    pressures = events[events["type_name"] == "Pressure"]
     # Pressures in the final third
+    final_third_pressures = pressures[pressures["x"] > 80]
+    num_final_third_pressures = final_third_pressures.sum()
     # Ball recoveries in final third
+    recoveries = events[events["type_name"] == "Ball Recovery"]
+    recoveries = recoveries[recoveries["outcome_name"] == "Successful"] #todo check to ensure this is correct
+    recoveries_final_third = recoveries[recoveries["x"] > 80]
 
-
-print(naismith_events.size)
-
-l
+    def_stats = pressures.merge(recoveries,
+                                recoveries_final_third,
+                                num_final_third_pressures)
+    return def_stats
