@@ -62,7 +62,10 @@ def get_minutes_played(events):
 
         line_ups = pd.concat([line_ups, substitutions_in])
         line_ups.fillna(match_length, inplace=True)
-        line_ups['minutes_played'] = line_ups['minute'] - line_ups['time_start']
+
+        line_ups['time_out'] = line_ups[['time_out', 'minute']].min(axis=1)
+        line_ups['minutes_played'] = line_ups['time_out'] - line_ups['time_start']
+        line_ups = line_ups.drop(columns=['minute'])
 
         line_ups['match_id'] = match_select
         line_ups = line_ups.rename(columns={
@@ -79,11 +82,15 @@ def get_minutes_played(events):
 
     mins_played_list = [get_minutes_played_single_match(match_id) for match_id in match_ids]
     mins_played_df = pd.concat(mins_played_list)
-    mins_played_df.sort_values(by=["player_name", "match_id", "minutes_played"], ascending=[True, True, False])
-    mins_played_df_unique = mins_played_df.drop_duplicates(subset=['player_name', 'match_id'], keep='last')
-    Naismith_mins = mins_played_df[mins_played_df_unique["player_name"] == "Steven Naismith"]
-    #mins_played_df.fillna(0, inplace=True)
-    #mins_played_df = mins_played_df.groupby('player_name')['minutes_played'].sum().reset_index()
+
+    # Ensure we keep only the second instance of each match_id for each player
+    mins_played_df_sorted = mins_played_df.sort_values(by=["player_name", "match_id", "minutes_played"],
+                                                       ascending=[True, True, False])
+    mins_played_df_unique = mins_played_df_sorted.drop_duplicates(subset=['player_name', 'match_id'], keep='last')
+
+    # Filter for Steven Naismith
+    Naismith_mins = mins_played_df_unique[mins_played_df_unique["player_name"] == "Steven Naismith"]
+    mins_played_df = mins_played_df_unique.groupby('player_name')['minutes_played'].sum().reset_index()
 
     #todo Currently player minutes aren't correlating to the correct players. Either this is completely wrong, or the merging/sum has not worked. Investigate why.
 
