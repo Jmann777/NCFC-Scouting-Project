@@ -3,7 +3,7 @@ of shots from the imported event data
 """
 
 import pandas as pd
-
+from statsbombpy import sb
 from mplsoccer import Sbopen
 
 
@@ -22,6 +22,11 @@ def matches(cid: int, sid: int) -> pd.DataFrame:
     df_matches: pd.DataFrame = df_match.match_id.unique()
     return df_matches
 
+def lineups(match_id):
+    parser = Sbopen()
+    lineup: pd.DataFrame = parser.lineup(match_id)
+
+    return lineup
 
 def shots_season(cid: int, sid: int) -> pd.DataFrame:
     """ Obtain season shots data.
@@ -94,3 +99,8 @@ def events_season(cid: int, sid: int) -> pd.DataFrame:
         event_df: pd.DataFrame = pd.concat([event_df, df_event], ignore_index=True)
     event_df.reset_index(drop=True, inplace=True)
     return event_df
+
+def events_single(match: int):
+    df_match = sb.events(match)
+
+    return df_match
