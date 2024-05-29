@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.11"
 pandas = "^2.2.2"
 mplsoccer = "^1.2.4"
+statsbombpy = "^1.13.0"
+pytest = "^8.2.1"
 
 
 [build-system]
