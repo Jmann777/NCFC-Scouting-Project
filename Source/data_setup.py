@@ -33,6 +33,8 @@ ligue_events["League"] = 5
 # Creating a shots dataframe for all leagues and prem only for future use (DF saved to pickle)
 all_events: pd.DataFrame = pd.concat([prem_events, liga_events, bund_events, serie_events, ligue_events])
 all_events.reset_index(drop=True, inplace=True)
+with open('all_events.pkl', 'wb') as file:
+    pickle.dump(all_events, file)
 
 all_shots: pd.DataFrame = all_events.loc[all_events["type_name"] == "Shot"]
 with open('all_shots.pkl', 'wb') as file:

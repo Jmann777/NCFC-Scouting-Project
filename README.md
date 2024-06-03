@@ -39,3 +39,4 @@ Top 3 targets and why?
 
 https://steveaq.github.io/Player-Roles-Clustering/
 https://cartilagefreecaptain.sbnation.com/2015/10/19/9295905/premier-league-projections-and-new-expected-goals
+xg model - https://github.com/Slothfulwave612/xG-Model
