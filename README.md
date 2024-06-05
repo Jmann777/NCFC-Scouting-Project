@@ -40,3 +40,8 @@ Top 3 targets and why?
 https://steveaq.github.io/Player-Roles-Clustering/
 https://cartilagefreecaptain.sbnation.com/2015/10/19/9295905/premier-league-projections-and-new-expected-goals
 xg model - https://github.com/Slothfulwave612/xG-Model
+
+model setup:
+fit - https://www.youtube.com/watch?v=K5sVKQw9QgU
+Inter vs Extrap - https://www.youtube.com/watch?v=rY5pdNW7jKM
+Think about which one? Probably inter if only applying to one league?
