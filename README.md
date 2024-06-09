@@ -23,8 +23,24 @@ Why have I chosen the metrics?
 Model Dev:
 What models have I sued and why? What was the output?
 xG, xA, xA from crosses
+Logistical reg
+random forest
+xG boost (maybe)
 
 Model Evaluation:
+Logit - with predicted proibabilities- 
+Free kick m1- Log loss = 0.24; brier = 0.06; auc = 0.60
+Free kick m2 - Log loss = 0.23; brier = 0.06; auc = 0.62
+
+Headers m1- Log loss = 0.3; brier = 0.08; auc = 0.72
+Headers m2- Log loss = 0.3; brier = 0.09; auc = 0.72
+Headers m3- Log loss = 0.08; brier = 0.02, auc = 0.98
+Headers m4- Log loss = 0.08; brier = 0.03; auc = 0.98
+
+Regular m1- Log loss = 0.26; brier = 0.07; auc = 0.79
+Regualr m2- Log loss = 0.26; brier = 0.07; auc = 0.80
+Regular m3- Log loss = 0.16; brier = 0.05; auc = 0.95
+Regular m4- Log loss = 0.16; brier = 0.05; auc = 0.95 (Best)
 
 
 Which players look good?
