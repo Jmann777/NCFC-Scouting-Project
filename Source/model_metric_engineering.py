@@ -22,11 +22,7 @@ with open('../Source/all_shots.pkl', 'rb') as file:
 with open('../Source/all_events.pkl', 'rb') as file:
     all_events = pickle.load(file)
 
-with open('../Source/prem_shots.pkl', 'rb') as file:
-    prem_shots = pickle.load(file)
-
-prem_events = all_events[all_events["League"] == 1]
-passes = prem_events[prem_events["type_name"] == "Pass"]
+passes = all_events[all_events["type_name"] == "Pass"]
 passes['key_passes'] = passes['pass_shot_assist'].notna().astype(int)
 key_passes = passes[passes['pass_shot_assist'] == 1]
 
@@ -47,9 +43,9 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
 
     # Get the dependent variable (goals)
     shots["goal"] = shots.outcome_name.apply(lambda cell: 1 if cell == 'Goal' else 0)
-    shots["goal_smf"] = shots['goal'].astype(object)
+    shots["goal_smf"] = shots['goal'].astype(int)
 
-    # Calculating angle and distance
+    # Calculating angle and distance + inverses
     shots['x_ball'] = shots.x
     shots["x"] = shots.x.apply(lambda cell: 105 - cell)
     shots["c"] = shots.y.apply(lambda cell: abs(34 - cell))
@@ -58,6 +54,11 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
         7.32 * shots["x"] / (shots["x"] ** 2 + shots["c"] ** 2 - (7.32 / 2) ** 2)), np.arctan(
         7.32 * shots["x"] / (shots["x"] ** 2 + shots["c"] ** 2 - (7.32 / 2) ** 2)) + np.pi) * 180 / np.pi
     shots["distance"] = np.sqrt(shots["x"] ** 2 + shots["c"] ** 2)
+
+    epsilon = 1e-6
+    shots["inverse_angle"] = 1 / (shots["angle"] + epsilon)
+
+    shots["inverse_distance"] = 1 / (shots["distance"] + epsilon)
 
     # Prepping pressure column for the model (allocating nan = 0)
     shots["under_pressure"] = shots["under_pressure"].fillna(0)
@@ -84,6 +85,9 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
 
     # Converting first time finishes into dummy of 0,1
     shots["shot_first_time"] = shots["shot_first_time"].fillna(False).astype(int)
+
+    # Converting deflected shots into dummy of 0,1
+    shots["shot_deflected"] = shots["shot_deflected"].fillna(False).astype(int)
 
     # Creating a dummy for assist type - requires loop
     def assist_type(row):
@@ -112,7 +116,7 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
             else:
                 return 9
         # Allocating cutback (10)
-        elif row['pass_cut_back'] == True:  # todo does this overwrite the headed cutback?
+        elif row['pass_cut_back'] == True:
             return 10
         # Allocating regular assists (Ground(11), low(12), high(13))
         else:
@@ -129,10 +133,12 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
     combined_shots_passes = pd.concat([shots, shot_assists])
     combined_shots_passes = combined_shots_passes.sort_index()
 
+    combined_shots_passes['assist_type'] = combined_shots_passes['assist_type'].fillna(False).astype(int)
+
     return combined_shots_passes
 
 
-shot_passes: pd.DataFrame = model_metric_setup(prem_shots, key_passes)
+shot_passes: pd.DataFrame = model_metric_setup(all_shots, key_passes)
 shots_df = shot_passes[shot_passes["type_name"] == "Shot"]
 
 # Removing penalties for xnpG
@@ -140,20 +146,16 @@ shots_df = shots_df[shots_df.sub_type_name != "Penalty"]
 
 # Separating shots into subsections for modelling
 shots_from_fk: pd.DataFrame = shots_df[shots_df["sub_type_name"] == "Free Kick"]
+with open('fk.pkl', 'wb') as file:
+    pickle.dump(shots_from_fk, file)
 
-headed_shots_from_crosses: pd.DataFrame = shots_df[
-    (shots_df["body_part_name"] == "Head")
-    & (shots_df["assist_type"].isin([4, 5, 6]))]
-
-regular_shots_from_crosses: pd.DataFrame = shots_df[
-    (shots_df["body_part_name"] != "Head")
-    & (shots_df["assist_type"].isin([4, 5, 6]))]
-
-headed_shots_not_from_crosses: pd.DataFrame = shots_df[
-    (shots_df["body_part_name"] == "Head")
-    & (~shots_df["assist_type"].isin([4, 5, 6]))]
+headers: pd.DataFrame = shots_df[
+    (shots_df["body_part_name"] == "Head")]
+with open('headers.pkl', 'wb') as file:
+    pickle.dump(headers, file)
 
 regular_shots: pd.DataFrame = shots_df[
     (shots_df["body_part_name"] != "Head")
-    & (~shots_df["assist_type"].isin([4, 5, 6]))
     & (shots_df["sub_type_name"] != "Free Kick")]
+with open('regular_shots.pkl', 'wb') as file:
+    pickle.dump(regular_shots, file)
