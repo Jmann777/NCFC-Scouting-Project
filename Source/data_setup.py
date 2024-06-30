@@ -17,11 +17,11 @@ for competition, comp_id in cid.items():
     print(f"Fetching data for {competition}...")
     competition_df[competition] = sbj.events_season(comp_id, sid)
 
-prem_events = competition_df['ENG']
-liga_events = competition_df['SPN']
-bund_events = competition_df['DE']
-serie_events = competition_df['IT']
-ligue_events = competition_df['FR']
+prem_events: pd.DataFrame = competition_df['ENG']
+liga_events: pd.DataFrame = competition_df['SPN']
+bund_events: pd.DataFrame = competition_df['DE']
+serie_events: pd.DataFrame = competition_df['IT']
+ligue_events: pd.DataFrame = competition_df['FR']
 
 # Assigning league dummy for future use in the xG model
 prem_events["league"] = 1

@@ -5,20 +5,16 @@ The following file ...
 import pickle
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score, log_loss, brier_score_loss, roc_curve
+from sklearn.metrics import roc_auc_score, accuracy_score, brier_score_loss, roc_curve, mean_squared_error, make_scorer
 from sklearn.preprocessing import StandardScaler
-
+from xgboost import XGBClassifier
 
 # Opening pickle files for each shot type
-with open('../Source/fk.pkl', 'rb') as file:
-    free_kicks = pickle.load(file)
-
 with open('../Source/headers.pkl', 'rb') as file:
     headers = pickle.load(file)
 
@@ -26,23 +22,28 @@ with open('../Source/regular_shots.pkl', 'rb') as file:
     regular_shots = pickle.load(file)
 
 # Examining shape for test/train splits
-print("Free kick", free_kicks.shape)
 print("Headers", headers.shape)
 print("Regular", regular_shots.shape)
 
-# Setting independent variables for each model
-basic_x = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League']
-opposition_x_fk = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League', 'shot_deflected']
+print(sum(regular_shots['goal_smf']) / len(regular_shots['goal_smf']))
 
+# Setting independent variables (x), dependent variable (y), and encode lists for models
+basic_x = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League']
 player_x_other = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League',
-                  'technique', 'shot_first_time']
+                  'technique_name', 'shot_first_time']
 teammate_x_other = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League',
-                    'technique', 'shot_first_time',
-                    'pattern_of_play', 'assist_type']
+                    'technique_name', 'shot_first_time',
+                    'play_pattern_name', 'assist_type']
 opposition_x_other = ['distance', 'angle', 'inverse_distance', 'inverse_angle', 'League',
-                      'technique', 'shot_first_time',
-                      'pattern_of_play', 'assist_type',
+                      'technique_name', 'shot_first_time',
+                      'play_pattern_name', 'assist_type',
                       'under_pressure', 'shot_deflected']
+
+basic_encode = ['League']
+player_encode = ['League', 'technique_name', 'shot_first_time']
+team_encode = ['League', 'technique_name', 'shot_first_time', 'play_pattern_name', 'assist_type']
+opp_encode = ['League', 'technique_name', 'shot_first_time', 'play_pattern_name',
+              'assist_type', 'under_pressure', 'shot_deflected']
 
 
 # todo change to "league"
@@ -53,7 +54,6 @@ def splits_by_league(data, test_size=0.1):
     Parameters:
        - data (pd.DataFrame): Dataframe containing input data for model and data splits
        - test_size (int): Percentage of overall dataframe to be split into the test data
-       - validation_size (int): Percentage of overall dataframe to be split into the validation data
 
     Returns:
          - Training and test dataframes for model
@@ -69,8 +69,10 @@ def splits_by_league(data, test_size=0.1):
     for league in leagues:
         league_data = data[data['League'] == league]
 
+        y_league = league_data['goal_smf']
+
         # Split the data
-        train_data, test_data = train_test_split(league_data, test_size=test_size, shuffle=False)
+        train_data, test_data = train_test_split(league_data, test_size=test_size, random_state=123, stratify=y_league)
 
         # Append to respective lists
         test_frames.append(test_data)
@@ -83,65 +85,20 @@ def splits_by_league(data, test_size=0.1):
     return train_data, test_data
 
 
-def plot_learning_curve(estimator, X_train, y_train, cv=None, scoring='neg_log_loss'):
-    """
-    Plots a learning curve for the inputted model results
-
-    Parameters:
-    - estimator: The object that fits and predicts e.g. the model run
-    - X_train (np.array): Training vector containing n_sample and n_features
-    - y_train (np.array): Target for classification e.g. goals
-    - cv (int): Number of cross validations. Set to none as default of 5 is used
-    - scoring (str): Type of model scoring/evaluation
-
-    """
-    train_sizes, train_scores, val_scores = learning_curve(
-        estimator, X_train, y_train, cv=cv, scoring=scoring, n_jobs=-1, train_sizes=np.linspace(.1, 1.0, 5)
-    )
-
-    # Handling negating values from the use of "neg_log_loss"
-    if 'neg_' in scoring:
-        train_scores_mean = -np.mean(train_scores, axis=1)
-        train_scores_std = np.std(train_scores, axis=1)
-        val_scores_mean = -np.mean(val_scores, axis=1)
-        val_scores_std = np.std(val_scores, axis=1)
-    else:
-        # Calculating mean and sd over scores
-        train_scores_mean = np.mean(train_scores, axis=1)
-        train_scores_std = np.std(train_scores, axis=1)
-        val_scores_mean = np.mean(val_scores, axis=1)
-        val_scores_std = np.std(val_scores, axis=1)
-
-    # Plotting
-    plt.figure()
-    plt.plot(train_sizes, train_scores_mean, label="Training score", color="r")
-    plt.fill_between(train_sizes, train_scores_mean - train_scores_std, train_scores_mean + train_scores_std, color="r",
-                     alpha=0.1)
-    plt.plot(train_sizes, val_scores_mean, label="Validation score", color="g")
-    plt.fill_between(train_sizes, val_scores_mean - val_scores_std, val_scores_mean + val_scores_std, color="g",
-                     alpha=0.1)
-    plt.title("Learning Curve")
-    plt.xlabel("Training examples")
-    plt.ylabel("Score" if 'neg_' not in scoring else scoring)
-    plt.legend(loc="best")
-    plt.grid()
-    plt.show()
-
-
-def logistic_model(data, x):
+def logistic_model(data, x, encode):
     """
     Fits a logistic regression model with L2 regularization and evaluates its performance.
 
     Parameters:
     - data (pd.DataFrame): Dataframe containing input data for model and data splits
     - x: The features used as IVs to predict Y
+    - encode: Variables that require one hot encoding
 
     Returns:
-    - Predicted probabilities for the test data.
+    - xg_values_logistic (np.array): Predicted probabilities for the data.
     """
     # Loading in and sorting the data
     train_data, test_data = splits_by_league(data, test_size=0.1)
-
     x_vars = x
     y_var = 'goal_smf'
 
@@ -150,54 +107,53 @@ def logistic_model(data, x):
     x_test = test_data[x_vars].copy()
     y_test = test_data[y_var]
 
-    # Creating dummies
-    x_train['League'] = x_train['League'].astype('category')
-    x_test['League'] = x_test['League'].astype('category')
-    x_train = pd.get_dummies(x_train, columns=['League'], drop_first=True)
-    x_test = pd.get_dummies(x_test, columns=['League'], drop_first=True)
+    # One hot encoding for categorical variables
+    x_train = pd.get_dummies(x_train, columns=encode, drop_first=True)
+    x_test = pd.get_dummies(x_test, columns=encode, drop_first=True)
 
-    # Aligning sets to avoid data leakage
+    # Dataset manipulation
     x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
 
-    # Apply Scaling
     scaler = StandardScaler()
     x_train_scaled = scaler.fit_transform(x_train)
     x_test_scaled = scaler.transform(x_test)
 
-    # Convert scaled arrays back to DataFrames with the original column names
     x_train_scaled = pd.DataFrame(x_train_scaled, columns=x_train.columns)
     x_test_scaled = pd.DataFrame(x_test_scaled, columns=x_test.columns)
 
+    # Regularising and running the model
     penalty = 'l2'
     C = 0.001
 
     model = LogisticRegression(penalty=penalty, C=C, max_iter=10000)
-    model.fit(x_train_scaled, y_train)
+    model.fit(x_train_scaled,
+              y_train)
 
-    x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
-    y_data = pd.concat([y_train, y_test])
-    xg_values = model.predict_proba(x_data_scaled)[:, 1]
+    # Cross validation scores
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_auc_scores = cross_val_score(model, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
+    mean_cv_auc = cv_auc_scores.mean()
+    print(f"Train Cross-Validation AUC Scores: {cv_auc_scores}")
+    print(f"Mean Train Cross-Validation AUC Score: {mean_cv_auc}")
 
-    cv_scores = cross_val_score(model, x_data_scaled, y_data, cv=5, scoring='roc_auc')
+    # Brier scores
+    brier_scorer = make_scorer(brier_score_loss, needs_proba=True)
+    cv_brier_scores = cross_val_score(model, x_test_scaled, y_test, cv=kf, scoring=brier_scorer)
+    mean_cv_brier = cv_brier_scores.mean()
+    print(f"Cross-Validation Brier Scores: {cv_brier_scores}")
+    print(f"Mean Cross-Validation Brier Score: {mean_cv_brier}")
 
-    print(f"Cross-Validation AUC Scores: {cv_scores}")
-    print(f"Mean Cross-Validation AUC Score: {cv_scores.mean()}")
+    # RMSE scores
+    rmse_scorer = make_scorer(mean_squared_error, squared=False, needs_proba=True)
+    cv_rmse_scores = cross_val_score(model, x_test_scaled, y_test, cv=kf, scoring=rmse_scorer)
+    mean_cv_rmse = cv_rmse_scores.mean()
+    print(f"Cross-Validation RMSE Scores: {cv_rmse_scores}")
+    print(f"Mean Cross-Validation RMSE Score: {mean_cv_rmse}")
 
+    # Test set evaluation
     y_pred_prob = model.predict_proba(x_test_scaled)[:, 1]
-
-    train_accuracy = model.score(x_train_scaled, y_train)
-    test_accuracy = model.score(x_test_scaled, y_test)
-    print(f"Training Accuracy: {train_accuracy}")
-    print(f"Testing Accuracy: {test_accuracy}")
-
-    logloss = log_loss(y_test, y_pred_prob)
-    print(f"Log-Loss: {logloss}")
-
     fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
     auc = roc_auc_score(y_test, y_pred_prob)
-
-    brier = brier_score_loss(y_test, y_pred_prob)
-    print(f"Brier Score: {brier}")
 
     plt.plot(fpr, tpr, label=f'AUC = {auc:.2f}')
     plt.xlabel('False Positive Rate')
@@ -206,77 +162,119 @@ def logistic_model(data, x):
     plt.legend()
     plt.show()
 
-    print(f"AUC: {auc}")
+    x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
+    xg_values_logistic = model.predict_proba(x_data_scaled)[:, 1]
 
-    plot_learning_curve(model, x_train_scaled, y_train, cv=5, scoring='neg_log_loss')
-
-    return xg_values
+    return xg_values_logistic
 
 
-def random_forest_model(data, x):
+def random_forest_model(data, x, encode):
     """
     Fits a random forest model and evaluates its performance
 
      Parameters:
     - data (pd.Dataframe): Dataframe containing input data for model and data splits
     - x: The features used as IVs to predict Y
+    - encode: Variables that require one hot encoding
 
     Returns:
     - Predicted probabilities for the test data.
     """
-    train_data, test_data = splits_by_league(data, test_size=0.1)
     x_vars = x
     y_var = 'goal_smf'
+    train_data, test_data = splits_by_league(data, test_size=0.1)
 
     x_train = train_data[x_vars]
     y_train = train_data[y_var]
     x_test = test_data[x_vars]
     y_test = test_data[y_var]
 
-    # Creating dummies for league
-    x_train['League'] = x_train['League'].astype('category')
-    x_test['League'] = x_test['League'].astype('category')
-    x_train = pd.get_dummies(x_train, columns=['League'], drop_first=True)
-    x_test = pd.get_dummies(x_test, columns=['League'], drop_first=True)
+    print(sum(y_train) / len(y_train))
+    print(sum(y_test) / len(y_test))
 
+    # One hot encoding for categorical variables
+    x_train = pd.get_dummies(x_train, columns=encode, drop_first=True)
+    x_test = pd.get_dummies(x_test, columns=encode, drop_first=True)
+
+    # Dataset manipulation
     x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
 
-    # Apply Scaling
     scaler = StandardScaler()
     x_train_scaled = scaler.fit_transform(x_train)
     x_test_scaled = scaler.transform(x_test)
 
-    # Convert scaled arrays back to DataFrames with the original column names
     x_train_scaled = pd.DataFrame(x_train_scaled, columns=x_train.columns)
     x_test_scaled = pd.DataFrame(x_test_scaled, columns=x_test.columns)
 
-    # Running Forest
-    classifier = RandomForestClassifier(n_estimators=200)
-    classifier.fit(x_train, y_train)
+    # Running model
+    classifier = RandomForestClassifier(n_estimators=1, warm_start=True, random_state=42, max_leaf_nodes=500)
 
-    # Cross-Validation
-    x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
-    y_data = pd.concat([y_train, y_test])
-    xg_values = classifier.predict_proba(x_data_scaled)[:, 1]
+    # Arrays to store the results
+    train_rmse = []
+    test_rmse = []
+    train_error = []
+    test_error = []
 
-    cv_scores = cross_val_score(classifier, x_data_scaled, y_data, cv=5, scoring='roc_auc')
+    # Loop for learning curve
+    for i in range(1, 201):
+        classifier.n_estimators = i
+        classifier.fit(x_train_scaled, y_train)
 
-    y_pred_prob = classifier.predict_proba(x_test)[:, 1]
+        y_train_pred = classifier.predict(x_train_scaled)
+        y_test_pred = classifier.predict(x_test_scaled)
 
-    # Model Evaluation
-    train_accuracy = classifier.score(x_train_scaled, y_train)
-    test_accuracy = classifier.score(x_test_scaled, y_test)
-    print(f"Training Accuracy: {train_accuracy}")
-    print(f"Testing Accuracy: {test_accuracy}")
+        train_rmse.append(np.sqrt(mean_squared_error(y_train, y_train_pred)))
+        test_rmse.append(np.sqrt(mean_squared_error(y_test, y_test_pred)))
 
-    logloss = log_loss(y_test, y_pred_prob)
-    print(f"Log-Loss: {logloss}")
+        train_error.append(1 - accuracy_score(y_train, y_train_pred))
+        test_error.append(1 - accuracy_score(y_test, y_test_pred))
 
+    # Plotting the learning curves
+    fig, axs = plt.subplots(2, figsize=(10, 12))
+
+    # Plotting training history - RMSE
+    axs[0].plot(train_rmse, label='train rmse')
+    axs[0].plot(test_rmse, label='test rmse')
+    axs[0].set_title("RMSE with number of trees")
+    axs[0].set_xlabel("Number of Trees")
+    axs[0].set_ylabel("RMSE")
+    axs[0].legend()
+
+    # Plotting training history - Error
+    axs[1].plot(train_error, label='train error')
+    axs[1].plot(test_error, label='test error')
+    axs[1].set_title("Error with number of trees")
+    axs[1].set_xlabel("Number of Trees")
+    axs[1].set_ylabel("Error")
+    axs[1].legend()
+
+    plt.show()
+
+    # Cross-validation scores
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_auc_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
+    mean_cv_auc = cv_auc_scores.mean()
+    print(f"Cross-Validation AUC Scores: {cv_auc_scores}")
+    print(f"Mean Cross-Validation AUC Score: {mean_cv_auc}")
+
+    # Brier scores
+    brier_scorer = make_scorer(brier_score_loss, needs_proba=True)
+    cv_brier_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring=brier_scorer)
+    mean_cv_brier = cv_brier_scores.mean()
+    print(f"Cross-Validation Brier Scores: {cv_brier_scores}")
+    print(f"Mean Cross-Validation Brier Score: {mean_cv_brier}")
+
+    # RMSE scores
+    rmse_scorer = make_scorer(mean_squared_error, squared=False, needs_proba=True)
+    cv_rmse_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring=rmse_scorer)
+    mean_cv_rmse = cv_rmse_scores.mean()
+    print(f"Cross-Validation RMSE Scores: {cv_rmse_scores}")
+    print(f"Mean Cross-Validation RMSE Score: {mean_cv_rmse}")
+
+    # Test set evaluation
+    y_pred_prob = classifier.predict_proba(x_test_scaled)[:, 1]
     fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
     auc = roc_auc_score(y_test, y_pred_prob)
-
-    brier = brier_score_loss(y_test, y_pred_prob)
-    print(f"Brier Score: {brier}")
 
     plt.plot(fpr, tpr, label=f'AUC = {auc:.2f}')
     plt.xlabel('False Positive Rate')
@@ -285,63 +283,188 @@ def random_forest_model(data, x):
     plt.legend()
     plt.show()
 
-    print(f"AUC: {auc}")
+    # Combining training and test data for final xG prediction
+    x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
+    xg_values_rf = classifier.predict_proba(x_data_scaled)[:, 1]
 
-    plot_learning_curve(classifier, x_train, y_train, cv=5, scoring='neg_log_loss')
-
-    return xg_values2
+    return xg_values_rf
 
 
-# Free kick models
-# fk_model_1 = logistic_model(free_kicks, basic_x)
-# fk_model_2 = logistic_model(free_kicks, opposition_x_fk)
-# fk_model_1_rf = random_forest_model(free_kicks, basic_x)
-# fk_model_2_rf = random_forest_model(free_kicks, opposition_x_fk)
+def xGBoost(data, x, encode):  # todo add type hinting
+    x_vars = x
+    y_var = 'goal_smf'
+    train_data, test_data = splits_by_league(data, test_size=0.1)
+
+    x_train = train_data[x_vars]
+    y_train = train_data[y_var]
+    x_test = test_data[x_vars]
+    y_test = test_data[y_var]
+
+    print(sum(y_train) / len(y_train))
+    print(sum(y_test) / len(y_test))
+
+    # One hot encoding for categorical variables
+    x_train = pd.get_dummies(x_train, columns=encode, drop_first=True)
+    x_test = pd.get_dummies(x_test, columns=encode, drop_first=True)
+
+    # Dataset manipulation
+    x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
+
+    scaler = StandardScaler()
+    x_train_scaled = scaler.fit_transform(x_train)
+    x_test_scaled = scaler.transform(x_test)
+
+    x_train_scaled = pd.DataFrame(x_train_scaled, columns=x_train.columns)
+    x_test_scaled = pd.DataFrame(x_test_scaled, columns=x_test.columns)
+
+    # Running model
+    classifier = XGBClassifier(objective='binary:logistic',
+                               seed=42,
+                               gamma=0,
+                               learn_rate=0.1,
+                               max_depth=4,
+                               reg_lambda=1.0,
+                               scale_pos_weight=5,
+                               subsample=0.5,
+                               colsample_bytree=0.5,
+                               n_estimators=200)
+
+    eval_set = [(x_train_scaled, y_train), (x_test_scaled, y_test)]
+
+    fit_params = {
+        "eval_set": eval_set,
+        "early_stopping_rounds": 10,
+        "verbose": True,
+        "eval_metric": ["error", "rmse"]
+    }
+    # Fitting the model with early stopping
+    classifier.fit(x_train_scaled,
+                   y_train,
+                   **fit_params)
+
+    results = classifier.evals_result()
+
+    fig, axs = plt.subplots(2, figsize=(10, 12))
+
+    # Plotting training history - error
+    axs[0].plot(results['validation_0']['rmse'], label='train rmse')
+    axs[0].plot(results['validation_1']['rmse'], label='test rmse')
+    axs[0].set_title("RMSE at each epoch")
+    axs[0].set_xlabel("Epoch")
+    axs[0].set_ylabel("RMSE")
+    axs[0].legend()
+
+    # Plotting training history - log loss
+    axs[1].plot(results['validation_0']['error'], label='train error')
+    axs[1].plot(results['validation_1']['error'], label='test error')
+    axs[1].set_title("Error at each epoch")
+    axs[1].set_xlabel("Epoch")
+    axs[1].set_ylabel("Error")
+    axs[1].legend()
+
+    plt.show()
+
+    # Cross-validation scores
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    cv_auc_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
+    mean_cv_auc = cv_auc_scores.mean()
+    print(f"Cross-Validation AUC Scores: {cv_auc_scores}")
+    print(f"Mean Cross-Validation AUC Score: {mean_cv_auc}")
+
+    # Brier scores
+    brier_scorer = make_scorer(brier_score_loss, needs_proba=True)
+    cv_brier_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring=brier_scorer)
+    mean_cv_brier = cv_brier_scores.mean()
+    print(f"Cross-Validation Brier Scores: {cv_brier_scores}")
+    print(f"Mean Cross-Validation Brier Score: {mean_cv_brier}")
+
+    # RMSE scores
+    rmse_scorer = make_scorer(mean_squared_error, squared=False, needs_proba=True)
+    cv_rmse_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring=rmse_scorer)
+    mean_cv_rmse = cv_rmse_scores.mean()
+    print(f"Cross-Validation RMSE Scores: {cv_rmse_scores}")
+    print(f"Mean Cross-Validation RMSE Score: {mean_cv_rmse}")
+
+    # Test set evaluation
+    y_pred_prob = classifier.predict_proba(x_test_scaled)[:, 1]
+    fpr, tpr, thresholds = roc_curve(y_test, y_pred_prob)
+    auc = roc_auc_score(y_test, y_pred_prob)
+
+    plt.plot(fpr, tpr, label=f'AUC = {auc:.2f}')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend()
+    plt.show()
+
+    # Combining training and test data for final xG prediction
+    x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
+    xg_values_xgbst = classifier.predict_proba(x_data_scaled)[:, 1]
+
+    return xg_values_xgbst
+
 
 # Header models
-# header_model1 = logistic_model(headers, basic_x)
-# header_model2 = logistic_model(headers, player_x_other)
-# header_model3 = logistic_model(headers, teammate_x_other)
-# header_model4 = logistic_model(headers, opposition_x_other)
-# header_model1_rf = random_forest_model(headers, basic_x)
-# header_model2_rf = random_forest_model(headers, player_x_other)
-# header_model3_rf = random_forest_model(headers, teammate_x_other)
-# header_model4_rf = random_forest_model(headers, opposition_x_other)
+# header_model1 = logistic_model(headers, basic_x, basic_encode)
+# header_model2 = logistic_model(headers, player_x_other, player_encode)
+# header_model3 = logistic_model(headers, teammate_x_other, team_encode)
+# header_model4 = logistic_model(headers, opposition_x_other, opp_encode)
+# header_model1_rf = random_forest_model(headers, basic_x, basic_encode)
+# header_model2_rf = random_forest_model(headers, player_x_other, player_encode)
+header_model3_rf = random_forest_model(headers, teammate_x_other, team_encode)
+# header_model4_rf = random_forest_model(headers, opposition_x_other, opp_encode)
+# header_model1_xgbst = xGBoost(regular_shots, basic_x, basic_encode)
+# header_model2_xgbst = xGBoost(regular_shots, player_x_other, player_encode)
+# header_model3_xgbst = xGBoost(regular_shots, teammate_x_other, team_encode)
+# header_model4_xgbst = xGBoost(all_shots, opposition_x_other, opp_encode)
+
 
 # Regular shots models
-# regular_shots_model1 = logistic_model(regular_shots, basic_x)
-#regular_shots_model2 = logistic_model(regular_shots, player_x_other)
-#regular_shots_model3 = logistic_model(regular_shots, teammate_x_other)
-regular_shots_model4 = logistic_model(regular_shots, opposition_x_other)
-# regular_shots_model1_rf = random_forest_model(regular_shots, basic_x)
-# regular_shots_model2_rf = random_forest_model(regular_shots, player_x_other)
-# regular_shots_model3_rf = random_forest_model(regular_shots, teammate_x_other)
-# regular_shots_model4_rf = random_forest_model(regular_shots, opposition_x_other)
+# regular_shots_model1 = logistic_model(regular_shots, basic_x, basic_encode)
+# regular_shots_model2 = logistic_model(regular_shots, player_x_other, player_encode)
+# regular_shots_model3 = logistic_model(regular_shots, teammate_x_other, team_encode)
+# regular_shots_model4 = logistic_model(regular_shots, opposition_x_other, opp_encode)
+# regular_shots_model1_rf = random_forest_model(regular_shots, basic_x, basic_encode)
+# regular_shots_model2_rf = random_forest_model(regular_shots, player_x_other, player_encode)
+# regular_shots_model3_rf = random_forest_model(regular_shots, teammate_x_other, team_encode)
+# regular_shots_model4_rf = random_forest_model(regular_shots, opposition_x_other, opp_encode)
+# regular_shots_model1_xgbst = xGBoost(regular_shots, basic_x, basic_encode)
+# regular_shots_model2_xgbst = xGBoost(regular_shots, player_x_other, player_encode)
+# regular_shots_model3_xgbst = xGBoost(regular_shots, teammate_x_other, team_encode)
+# regular_shots_model4_xgbst = xGBoost(regular_shots, opposition_x_other, opp_encode)
 
-regular_shots["our_xg"] = regular_shots_model4
-# todo Recommendations
-# todo clean up code
-# - Test for multicollinearity - vif
+# all_shots["our_xg"] = regular_shots_model4_xgbst
+headers["our_xg"] = header_model3_rf
+# todo put this in a function
 # Compare my xg to statsbomb
-xG_comparison = regular_shots[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
-xG_sum_per_player = xG_comparison.groupby('player_name').agg({
+# xG_comparison = all_shots[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
+xG_comparison_header = headers[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
+
+# xG_sum_per_player = xG_comparison.groupby('player_name').agg({
+#    'goal': 'sum',
+#    'shot_statsbomb_xg': 'sum',
+#    'our_xg': 'sum'
+# }).reset_index()
+xG_comparison_header = headers[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
+
+xG_sum_per_player_header = xG_comparison_header.groupby('player_name').agg({
     'goal': 'sum',
     'shot_statsbomb_xg': 'sum',
     'our_xg': 'sum'
 }).reset_index()
 
-
 # Calculate absolute errors
-xG_comparison['abs_error_statsbomb'] = np.abs(xG_comparison['goal'] - xG_comparison['shot_statsbomb_xg'])
-xG_comparison['abs_error_our_xg'] = np.abs(xG_comparison['goal'] - xG_comparison['our_xg'])
+xG_comparison_header['abs_error_statsbomb'] = np.abs(
+    xG_comparison_header['goal'] - xG_comparison_header['shot_statsbomb_xg'])
+xG_comparison_header['abs_error_our_xg'] = np.abs(xG_comparison_header['goal'] - xG_comparison_header['our_xg'])
 
 # Calculate Mean Absolute Error (MAE)
-mae_statsbomb = xG_comparison['abs_error_statsbomb'].mean()
-mae_our_xg = xG_comparison['abs_error_our_xg'].mean()
+mae_statsbomb = xG_comparison_header['abs_error_statsbomb'].mean()
+mae_our_xg = xG_comparison_header['abs_error_our_xg'].mean()
 
 # Calculate Root Mean Squared Error (RMSE)
-rmse_statsbomb = np.sqrt((xG_comparison['abs_error_statsbomb']**2).mean())
-rmse_our_xg = np.sqrt((xG_comparison['abs_error_our_xg']**2).mean())
+rmse_statsbomb = np.sqrt((xG_comparison_header['abs_error_statsbomb'] ** 2).mean())
+rmse_our_xg = np.sqrt((xG_comparison_header['abs_error_our_xg'] ** 2).mean())
 
 print(f"Mean Absolute Error (MAE):")
 print(f"StatsBomb xG: {mae_statsbomb}")
@@ -350,6 +473,3 @@ print(f"Our xG: {mae_our_xg}")
 print(f"\nRoot Mean Squared Error (RMSE):")
 print(f"StatsBomb xG: {rmse_statsbomb}")
 print(f"Our xG: {rmse_our_xg}")
-
-# https://www.youtube.com/watch?v=zM4VZR0px8E
-# https://stackoverflow.com/questions/50733014/linear-regression-with-dummy-categorical-variables
