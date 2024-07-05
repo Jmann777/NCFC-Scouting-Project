@@ -153,17 +153,6 @@ files = [
 ]
 
 [[package]]
-name = "cloudpickle"
-version = "3.0.0"
-description = "Pickler class to extend the standard pickle.Pickler functionality"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "cloudpickle-3.0.0-py3-none-any.whl", hash = "sha256:246ee7d0c295602a036e86369c77fecda4ab17b506496730f2f576d9016fd9c7"},
-    {file = "cloudpickle-3.0.0.tar.gz", hash = "sha256:996d9a482c6fb4f33c1a35335cf8afd065d2a56e973270364840712d9131a882"},
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -318,62 +307,29 @@ unicode = ["unicodedata2 (>=15.1.0)"]
 woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
 
 [[package]]
-name = "future"
-version = "1.0.0"
-description = "Clean single-source support for Python 3 and 2"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-files = [
-    {file = "future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216"},
-    {file = "future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05"},
-]
-
-[[package]]
-name = "hpsklearn"
-version = "0.1.0"
-description = "Hyperparameter Optimization for sklearn"
+name = "fuzzywuzzy"
+version = "0.18.0"
+description = "Fuzzy string matching in python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "hpsklearn-0.1.0.tar.gz", hash = "sha256:3a320062eb3296b35cccac87ad8b28b95dbc5f1fad22dc81e911f26d5b491cb7"},
+    {file = "fuzzywuzzy-0.18.0-py2.py3-none-any.whl", hash = "sha256:928244b28db720d1e0ee7587acf660ea49d7e4c632569cad4f1cd7e68a5f0993"},
+    {file = "fuzzywuzzy-0.18.0.tar.gz", hash = "sha256:45016e92264780e58972dca1b3d939ac864b78437422beecebb3095f8efd00e8"},
 ]
 
-[package.dependencies]
-hyperopt = "*"
-nose = "*"
-numpy = "*"
-scikit-learn = "*"
-scipy = "*"
-
 [package.extras]
-xgboost = ["xgboost (==0.6a2)"]
+speedup = ["python-levenshtein (>=0.12)"]
 
 [[package]]
-name = "hyperopt"
-version = "0.2.7"
-description = "Distributed Asynchronous Hyperparameter Optimization"
+name = "highlight-text"
+version = "0.2"
+description = "matplotlib functions to plot text with color highlighted substrings"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 files = [
-    {file = "hyperopt-0.2.7-py2.py3-none-any.whl", hash = "sha256:f3046d91fe4167dbf104365016596856b2524a609d22f047a066fc1ac796427c"},
-    {file = "hyperopt-0.2.7.tar.gz", hash = "sha256:1bf89ae58050bbd32c7307199046117feee245c2fd9ab6255c7308522b7ca149"},
+    {file = "highlight_text-0.2-py3-none-any.whl", hash = "sha256:fb1333628f500a0ff2c25af757511eb39034c1d19571994821b2e0f76d040f75"},
+    {file = "highlight_text-0.2.tar.gz", hash = "sha256:062d8f648fd474157367e435e37ef5c68cc58b1c8d0b006baab2e7c1c60bdc37"},
 ]
-
-[package.dependencies]
-cloudpickle = "*"
-future = "*"
-networkx = ">=2.2"
-numpy = "*"
-py4j = "*"
-scipy = "*"
-six = "*"
-tqdm = "*"
-
-[package.extras]
-atpe = ["lightgbm", "scikit-learn"]
-dev = ["black", "nose", "pre-commit", "pytest"]
-mongotrials = ["pymongo"]
-sparktrials = ["pyspark"]
 
 [[package]]
 name = "idna"
@@ -625,36 +581,6 @@ scipy = "*"
 seaborn = "*"
 
 [[package]]
-name = "networkx"
-version = "3.3"
-description = "Python package for creating and manipulating graphs and networks"
-optional = false
-python-versions = ">=3.10"
-files = [
-    {file = "networkx-3.3-py3-none-any.whl", hash = "sha256:28575580c6ebdaf4505b22c6256a2b9de86b316dc63ba9e93abde3d78dfdbcf2"},
-    {file = "networkx-3.3.tar.gz", hash = "sha256:0c127d8b2f4865f59ae9cb8aafcd60b5c70f3241ebd66f7defad7c4ab90126c9"},
-]
-
-[package.extras]
-default = ["matplotlib (>=3.6)", "numpy (>=1.23)", "pandas (>=1.4)", "scipy (>=1.9,!=1.11.0,!=1.11.1)"]
-developer = ["changelist (==0.5)", "mypy (>=1.1)", "pre-commit (>=3.2)", "rtoml"]
-doc = ["myst-nb (>=1.0)", "numpydoc (>=1.7)", "pillow (>=9.4)", "pydata-sphinx-theme (>=0.14)", "sphinx (>=7)", "sphinx-gallery (>=0.14)", "texext (>=0.6.7)"]
-extra = ["lxml (>=4.6)", "pydot (>=2.0)", "pygraphviz (>=1.12)", "sympy (>=1.10)"]
-test = ["pytest (>=7.2)", "pytest-cov (>=4.0)"]
-
-[[package]]
-name = "nose"
-version = "1.3.7"
-description = "nose extends unittest to make testing easier"
-optional = false
-python-versions = "*"
-files = [
-    {file = "nose-1.3.7-py2-none-any.whl", hash = "sha256:dadcddc0aefbf99eea214e0f1232b94f2fa9bd98fa8353711dacb112bfcbbb2a"},
-    {file = "nose-1.3.7-py3-none-any.whl", hash = "sha256:9ff7c6cc443f8c51994b34a667bbcf45afd6d945be7477b52e97516fd17c53ac"},
-    {file = "nose-1.3.7.tar.gz", hash = "sha256:f1bffef9cbc82628f6e7d7b40d7e255aefaa1adb6a1b1d26c69a8b79e6208a98"},
-]
-
-[[package]]
 name = "numpy"
 version = "1.26.4"
 description = "Fundamental package for array computing in Python"
@@ -898,17 +824,6 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
-
-[[package]]
-name = "py4j"
-version = "0.10.9.7"
-description = "Enables Python programs to dynamically access arbitrary Java objects"
-optional = false
-python-versions = "*"
-files = [
-    {file = "py4j-0.10.9.7-py2.py3-none-any.whl", hash = "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b"},
-    {file = "py4j-0.10.9.7.tar.gz", hash = "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb"},
-]
 
 [[package]]
 name = "pyparsing"
@@ -1172,26 +1087,6 @@ files = [
 ]
 
 [[package]]
-name = "tqdm"
-version = "4.66.4"
-description = "Fast, Extensible Progress Meter"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "tqdm-4.66.4-py3-none-any.whl", hash = "sha256:b75ca56b413b030bc3f00af51fd2c1a1a5eac6a0c1cca83cbb37a5c52abce644"},
-    {file = "tqdm-4.66.4.tar.gz", hash = "sha256:e4d936c9de8727928f3be6079590e97d9abfe8d39a590be678eb5919ffc186bb"},
-]
-
-[package.dependencies]
-colorama = {version = "*", markers = "platform_system == \"Windows\""}
-
-[package.extras]
-dev = ["pytest (>=6)", "pytest-cov", "pytest-timeout", "pytest-xdist"]
-notebook = ["ipywidgets (>=6)"]
-slack = ["slack-sdk"]
-telegram = ["requests"]
-
-[[package]]
 name = "typeguard"
 version = "4.2.1"
 description = "Run-time type checker for Python"
@@ -1292,4 +1187,4 @@ scikit-learn = ["scikit-learn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "310db8beeea40f83a12a44b9dfbb3b59091f52ae7daff85343a04b3c3f218968"
+content-hash = "0794eda0198a9a7365dc623b4de974fd3a8e54c6a1522a2e51aaac4633dd9797"

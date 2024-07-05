@@ -207,11 +207,16 @@ def random_forest_model(data, x, encode):
     x_test_scaled = pd.DataFrame(x_test_scaled, columns=x_test.columns)
 
     # Running model
-    classifier = RandomForestClassifier(n_estimators=1, warm_start=True, random_state=42, max_leaf_nodes=500)
+    classifier = RandomForestClassifier(n_estimators=100,
+                                        warm_start=True,
+                                        random_state=42,
+                                        max_depth=12,
+                                        min_samples_split=6
+    )
 
     # Arrays to store the results
-    train_rmse = []
-    test_rmse = []
+    train_accuracy = []
+    test_accuracy = []
     train_error = []
     test_error = []
 
@@ -223,8 +228,8 @@ def random_forest_model(data, x, encode):
         y_train_pred = classifier.predict(x_train_scaled)
         y_test_pred = classifier.predict(x_test_scaled)
 
-        train_rmse.append(np.sqrt(mean_squared_error(y_train, y_train_pred)))
-        test_rmse.append(np.sqrt(mean_squared_error(y_test, y_test_pred)))
+        train_accuracy.append(accuracy_score(y_train, y_train_pred))
+        test_accuracy.append(accuracy_score(y_test, y_test_pred))
 
         train_error.append(1 - accuracy_score(y_train, y_train_pred))
         test_error.append(1 - accuracy_score(y_test, y_test_pred))
@@ -233,8 +238,8 @@ def random_forest_model(data, x, encode):
     fig, axs = plt.subplots(2, figsize=(10, 12))
 
     # Plotting training history - RMSE
-    axs[0].plot(train_rmse, label='train rmse')
-    axs[0].plot(test_rmse, label='test rmse')
+    axs[0].plot(train_accuracy, label='train rmse')
+    axs[0].plot(train_accuracy, label='test rmse')
     axs[0].set_title("RMSE with number of trees")
     axs[0].set_xlabel("Number of Trees")
     axs[0].set_ylabel("RMSE")
@@ -431,45 +436,42 @@ header_model3_rf = random_forest_model(headers, teammate_x_other, team_encode)
 # regular_shots_model1_xgbst = xGBoost(regular_shots, basic_x, basic_encode)
 # regular_shots_model2_xgbst = xGBoost(regular_shots, player_x_other, player_encode)
 # regular_shots_model3_xgbst = xGBoost(regular_shots, teammate_x_other, team_encode)
-# regular_shots_model4_xgbst = xGBoost(regular_shots, opposition_x_other, opp_encode)
+regular_shots_model4_xgbst = xGBoost(regular_shots, opposition_x_other, opp_encode)
 
-# all_shots["our_xg"] = regular_shots_model4_xgbst
-headers["our_xg"] = header_model3_rf
-# todo put this in a function
-# Compare my xg to statsbomb
-# xG_comparison = all_shots[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
-xG_comparison_header = headers[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
+# Applying model xG output and saving to pickle
+regular_shots["our_xg"] = regular_shots_model4_xgbst(regular_shots)
+regular_shots.reset_index(drop=True, inplace=True)
+with open('regular_shots_output.pkl', 'wb') as file:
+    pickle.dump(regular_shots, file)
 
-# xG_sum_per_player = xG_comparison.groupby('player_name').agg({
-#    'goal': 'sum',
-#    'shot_statsbomb_xg': 'sum',
-#    'our_xg': 'sum'
-# }).reset_index()
-xG_comparison_header = headers[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
+headers["our_xg"] = header_model3_rf(headers)
+headers.reset_index(drop=True, inplace=True)
+with open('headed_shots_output.pkl', 'wb') as file:
+    pickle.dump(headers, file)
 
-xG_sum_per_player_header = xG_comparison_header.groupby('player_name').agg({
-    'goal': 'sum',
-    'shot_statsbomb_xg': 'sum',
-    'our_xg': 'sum'
-}).reset_index()
+def statsbomb_comparison(shot_type):
 
-# Calculate absolute errors
-xG_comparison_header['abs_error_statsbomb'] = np.abs(
-    xG_comparison_header['goal'] - xG_comparison_header['shot_statsbomb_xg'])
-xG_comparison_header['abs_error_our_xg'] = np.abs(xG_comparison_header['goal'] - xG_comparison_header['our_xg'])
+#todo add type hint
+    # Compare my xg to statsbomb
+    xG_comparison = shot_type[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
 
-# Calculate Mean Absolute Error (MAE)
-mae_statsbomb = xG_comparison_header['abs_error_statsbomb'].mean()
-mae_our_xg = xG_comparison_header['abs_error_our_xg'].mean()
+    # Calculate absolute errors
+    xG_comparison['abs_error_statsbomb'] = np.abs(
+    xG_comparison['goal'] - xG_comparison['shot_statsbomb_xg'])
+    xG_comparison['abs_error_our_xg'] = np.abs(xG_comparison['goal'] - xG_comparison['our_xg'])
 
-# Calculate Root Mean Squared Error (RMSE)
-rmse_statsbomb = np.sqrt((xG_comparison_header['abs_error_statsbomb'] ** 2).mean())
-rmse_our_xg = np.sqrt((xG_comparison_header['abs_error_our_xg'] ** 2).mean())
+    # Calculate Mean Absolute Error (MAE)
+    mae_statsbomb = xG_comparison['abs_error_statsbomb'].mean()
+    mae_our_xg = xG_comparison['abs_error_our_xg'].mean()
 
-print(f"Mean Absolute Error (MAE):")
-print(f"StatsBomb xG: {mae_statsbomb}")
-print(f"Our xG: {mae_our_xg}")
+    # Calculate Root Mean Squared Error (RMSE)
+    rmse_statsbomb = np.sqrt((xG_comparison['abs_error_statsbomb'] ** 2).mean())
+    rmse_our_xg = np.sqrt((xG_comparison['abs_error_our_xg'] ** 2).mean())
 
-print(f"\nRoot Mean Squared Error (RMSE):")
-print(f"StatsBomb xG: {rmse_statsbomb}")
-print(f"Our xG: {rmse_our_xg}")
+    print(f"Mean Absolute Error (MAE):")
+    print(f"StatsBomb xG: {mae_statsbomb}")
+    print(f"Our xG: {mae_our_xg}")
+
+    print(f"\nRoot Mean Squared Error (RMSE):")
+    print(f"StatsBomb xG: {rmse_statsbomb}")
+    print(f"Our xG: {rmse_our_xg}")
