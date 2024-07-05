@@ -15,7 +15,7 @@ from scipy import stats
 # with open('../Source/all_shots.pkl', 'rb') as file:
 #    all_shots = pickle.load(file)
 
-# with open('../Source/events.pkl', 'rb') as file:
+# with open('../Source/all_events.pkl', 'rb') as file:
 #    all_events = pickle.load(file)
 
 # Retrieving xG results from the model and combining into a player dataset
