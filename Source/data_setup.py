@@ -35,7 +35,7 @@ all_events: pd.DataFrame = pd.concat([prem_events, liga_events, bund_events, ser
 
 
 all_events.reset_index(drop=True, inplace=True)
-with open('all_events.pkl', 'wb') as file:
+with open('events.pkl', 'wb') as file:
     pickle.dump(all_events, file)
 
 all_shots: pd.DataFrame = all_events.loc[all_events["type_name"] == "Shot"]

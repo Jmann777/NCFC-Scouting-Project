@@ -13,7 +13,7 @@ import numpy as np
 with open('../Source/all_shots.pkl', 'rb') as file:
     all_shots = pickle.load(file)
 
-with open('../Source/all_events.pkl', 'rb') as file:
+with open('events.pkl', 'rb') as file:
     all_events = pickle.load(file)
 
 passes = all_events[all_events["type_name"] == "Pass"]
