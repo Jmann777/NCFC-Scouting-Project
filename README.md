@@ -48,6 +48,7 @@ Which players look good?
 
 Challenges + Improvements:
 What challenges did I face? How could I improve the model? (Age profile, HG status)
+Data generation? Supervised clustering of players to target psotion and player type
 
 Conclusion:
 Top 3 targets and why?

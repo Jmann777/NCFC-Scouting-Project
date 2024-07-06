@@ -2,13 +2,7 @@
 The following file engineers the features required for the model. This includes the allocation of the dependent variable
 (goals) as well as the creation of independent variables which include distance and angle from the goal,
  pattern of play, finish technique, finish type, assist type, and pressure on shot.
-
-This file also includes the creation of the 5 shot types that we will examine in our model (line 141-159).
 """
-
-
-#todo Change to include all shots into the function
-# - May need to delete the pickle references
 
 import pickle
 
@@ -19,7 +13,7 @@ import numpy as np
 with open('../Source/all_shots.pkl', 'rb') as file:
     all_shots = pickle.load(file)
 
-with open('../Source/all_events.pkl', 'rb') as file:
+with open('all_events.pkl', 'rb') as file:
     all_events = pickle.load(file)
 
 passes = all_events[all_events["type_name"] == "Pass"]
@@ -29,8 +23,9 @@ key_passes = passes[passes['pass_shot_assist'] == 1]
 
 def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
     """
-       Creation of model metrics. These metrics include distance, angle, pattern of play, finish technique,
-       pressure on finish, shot off dribble, first time shot, and assist type.
+       Creation of model metrics for logistic regression. These metrics include distance, angle, pressure on finish,
+        shot off dribble, first time shot, and assist type. Note - pattern of play, finish technique, assists, and league
+        are all categorised as dummies using one hot encoding in the model itself (see model.random_forest_model)
 
        Parameters:
        - shots (pd.DataFrame): Dataframe containing all shots
@@ -63,23 +58,6 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
     # Prepping pressure column for the model (allocating nan = 0)
     shots["under_pressure"] = shots["under_pressure"].fillna(0)
 
-    # Creating a dummy for pattern of play - Throw in, Corners, Free Kick, Regular
-    shots["pattern_of_play"] = shots.play_pattern_name.apply(
-        lambda cell: 1 if cell == 'From Throw In' else
-        2 if cell == 'From Corner' else
-        3 if cell == 'From Free Kick' else
-        4 if cell == 'Regular Play' else 0)
-
-    # Creating a dummy for finish technique - Normal, Header, Volley, Half Volley, Lob, Backheel, overhead kick
-    shots["technique"] = shots.technique_name.apply(
-        lambda cell: 1 if cell == 'Normal' else
-        3 if cell == 'Volley' else
-        4 if cell == 'Half Volley' else
-        5 if cell == 'Lob' else
-        6 if cell == 'Backheel' else
-        7 if cell == "Overhead Kick" else 0)
-    shots["technique"] = np.where(shots["body_part_name"] == "Head", 2, shots["technique"])
-
     # Converting shots off dribble into a dummy of 0,1
     shots["shot_follows_dribble"] = shots["shot_follows_dribble"].fillna(False).astype(int)
 
@@ -89,11 +67,11 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
     # Converting deflected shots into dummy of 0,1
     shots["shot_deflected"] = shots["shot_deflected"].fillna(False).astype(int)
 
-    # Creating a dummy for assist type - requires loop
+    # Creating assist type - requires loop
     def assist_type(row):
-        # Allocating headed assist type - headed regular (1), headed through ball (2), headed cutback (3)
+        # Allocating headed assist type - headed cutback (1), headed through ball (2), regular (3)
         if row['body_part_name'] == "Head":
-            if row['pass_cut_back'] == True:
+            if row['pass_cut_back']:
                 return 1
             elif row['technique_name'] == "Through Ball":
                 return 2
@@ -107,7 +85,7 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
                 return 5
             else:
                 return 6
-        # Allocating through ball assist type - ground through ball (7), low through ball (8), high throw ball (9)
+        # Allocating through ball assist type - ground through ball (7), low through ball (8), high through ball (9)
         elif row['technique_name'] == "Through Ball":
             if row['pass_height_name'] == "Ground Pass":
                 return 7
@@ -116,7 +94,7 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
             else:
                 return 9
         # Allocating cutback (10)
-        elif row['pass_cut_back'] == True:
+        elif row['pass_cut_back']:
             return 10
         # Allocating regular assists (Ground(11), low(12), high(13))
         else:
@@ -130,32 +108,25 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
     shot_assists['assist_type'] = shot_assists.apply(assist_type, axis=1)
     shots = shots.merge(shot_assists[['id', 'assist_type']], left_on='shot_key_pass_id', right_on='id', how='left')
 
-    combined_shots_passes = pd.concat([shots, shot_assists])
-    combined_shots_passes = combined_shots_passes.sort_index()
+    combined_shots_passes_trees = pd.concat([shots, shot_assists])
+    combined_shots_passes_trees = combined_shots_passes_trees.sort_index()
 
-    combined_shots_passes['assist_type'] = combined_shots_passes['assist_type'].fillna(False).astype(int)
+    combined_shots_passes_trees['assist_type'] = combined_shots_passes_trees['assist_type'].fillna(False).astype(int)
 
-    return combined_shots_passes
+    return combined_shots_passes_trees
 
-
+# Combining shots and passes then filtering to shots only #todo check if i need to do this
 shot_passes: pd.DataFrame = model_metric_setup(all_shots, key_passes)
 shots_df = shot_passes[shot_passes["type_name"] == "Shot"]
-
-# Removing penalties for xnpG
 shots_df = shots_df[shots_df.sub_type_name != "Penalty"]
 
-# Separating shots into subsections for modelling
-shots_from_fk: pd.DataFrame = shots_df[shots_df["sub_type_name"] == "Free Kick"]
-with open('fk.pkl', 'wb') as file:
-    pickle.dump(shots_from_fk, file)
-
+# Separating shots into headers and non-headers
 headers: pd.DataFrame = shots_df[
     (shots_df["body_part_name"] == "Head")]
 with open('headers.pkl', 'wb') as file:
     pickle.dump(headers, file)
 
 regular_shots: pd.DataFrame = shots_df[
-    (shots_df["body_part_name"] != "Head")
-    & (shots_df["sub_type_name"] != "Free Kick")]
+    (shots_df["body_part_name"] != "Head")]
 with open('regular_shots.pkl', 'wb') as file:
     pickle.dump(regular_shots, file)
