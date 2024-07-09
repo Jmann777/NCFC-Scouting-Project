@@ -1,60 +1,51 @@
 WORK IN PROGRESS
 
 
-
-
-Intoduction:
-Goal + Context
-Brady = 5.2mil Euro market gain (52% increase in market value)
+Introduction:
+xG (expected goals) is a metric used within football to describe the probability of shot converting into a goal. The development of the xG metric has been used in statistical scouting by both clubs and consultancies when trying to identify potential players for their teams. The following project seeks to experimentally build 4 xG models in an attempt to identify potential scouting targets that Norwich City could have considered when they were required to replace Robbie Brady after his depature from the club. The 4 models were then applied and evaluated via logistic regression, random forest classification, and xGboost classification.
 
 Data Collection:
-What data is being used? How have I cleaned it?(Adjusted to 105/120- figure out what this is) How have I normalised it?(Per 90) Which features have I added? (Minutes played)
+The project combines event data across the top 5 European League (taken from statsbomb) with player valuations and minutes played (taken from transfermarkt) during the 2015/16 season. This data was chosen due to the larger sample size available across the 5 leagues with player valuations and mintues played supplying key features for player identification and normalisation. In an ideal context we would also include tracking data alongside the event data, however this is not available in open formats for the 2015/16 season.
 
-Role analysis:
-Robbie Brady - Traditional winger - Lots of crosses, decent amount of shots (Data viz?), ball winning,  shot map?, pass map?
+Data Preparation:
+- Event data was cleaned and prepped for model use. All shots were grouped and then separated into headers and all other shots. The logic behind this separation assumes that the conversion of a header will be different in most cases to other shots.
+- Player valuation and minutes played data was matched using fuzzylogic + manual mapping to the event data.
 
-Do I want to include xGOT?
+Metric Selections for the Model:
+The idea behind the use of 4 differing model was to separate shooting actions and the factors that affect goal conversion into four categories. These categories are:
+- Basic (Incl - Angle, Distance, Inverse, League)
+- Singular Player Effects (Incl - Basic + technique, first time shot)
+- Teammate Effects (Incl - Player Effects + assist type, pattern of play)
+- Opposition Effects (Incl - Teammate + under pressure, shot deflected)
 
-Metric Selection:
-Why have I chosen the metrics?
-- Distance
-- Angle
-- GK position? Need tracking data
-- Shot type - Headers vs non_headers, directly from dribble, directly from free kick 
-- Pattern of play - Set piece, counter attack, open play
-- Type of assist - High cross, low cross, through ball, long ball, pass after through ball, cutbacks
-- Watch worville
-
-Model Dev:
-What models have I sued and why? What was the output?
-xG, xA, xA from crosses
-Logistical reg
-random forest
-xG boost
+Model Selection and Development:
+The methods selected to model xG through this data were logistical regression, random forest classification, and xGboost classification. 
+Add detailed reasoning for these
 
 Model Evaluation:
-Logit - with predicted proibabilities- 
-Free kick m1- Log loss = 0.24; brier = 0.06; auc = 0.60
-Free kick m2 - Log loss = 0.23; brier = 0.06; auc = 0.62
-
-Headers m1- Log loss = 0.3; brier = 0.08; auc = 0.72
-Headers m2- Log loss = 0.3; brier = 0.09; auc = 0.72
-Headers m3- Log loss = 0.08; brier = 0.02, auc = 0.98
-Headers m4- Log loss = 0.08; brier = 0.03; auc = 0.98
-
-Regular m1- Log loss = 0.26; brier = 0.07; auc = 0.79
-Regualr m2- Log loss = 0.26; brier = 0.07; auc = 0.80
-Regular m3- Log loss = 0.16; brier = 0.05; auc = 0.95
-Regular m4- Log loss = 0.16; brier = 0.05; auc = 0.95 (Best)
+Provide visualisations and stats for model scores. Potentially provide table or only the important models. Also add  reasoning for using statsbomb xg for visualisations.
 
 
-Which players look good?
+What did Brady's data profile look like?
+![Robbie Brady Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/30b804c7-32a1-4094-91d4-9e11f7227292)
 
 
-Challenges + Improvements:
-What challenges did I face? How could I improve the model? (Age profile, HG status)
-Data generation? Supervised clustering of players to target psotion and player type
+Which players look similar/better?
 
-Conclusion:
+![Scatter plot for xG vs value](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/7e8e07f4-82c2-43f9-a16b-fa52286a75f2)
+
+![xA Graph NCFC](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/267afb49-0073-4424-8d32-f4562af098c2)
+
+![xGA Graph NCFC](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/55dc02b7-f15c-4bc4-b18c-8bcf1860ffc2)
+
+![Filip Kostic Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/9721d8e1-55ff-41ec-bf1e-9bda3f764a97)
+
+![Jairo Samperio Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/f66a3cc7-4ca3-4800-8ffe-a2f583d469de)
+
+![Nicolas Benezet Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/52f6f6bf-96ee-4d1f-8394-fef6187ded08)
+
+
+Conclusion + Challenges
 Top 3 targets and why?
-
+Challenges + Improvements:
+What challenges did I face? How could I improve the model? 
