@@ -58,10 +58,3 @@ Data generation? Supervised clustering of players to target psotion and player t
 Conclusion:
 Top 3 targets and why?
 
-
-xg model - https://github.com/Slothfulwave612/xG-Model
-
-model setup:
-fit - https://www.youtube.com/watch?v=K5sVKQw9QgU
-Inter vs Extrap - https://www.youtube.com/watch?v=rY5pdNW7jKM
-Think about which one? Probably inter if only applying to one league?
