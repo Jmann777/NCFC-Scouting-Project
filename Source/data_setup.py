@@ -33,7 +33,6 @@ ligue_events["league"] = 5
 # Creating an event dataframe, with match date included, for all leagues for future use (DF saved to pickle)
 all_events: pd.DataFrame = pd.concat([prem_events, liga_events, bund_events, serie_events, ligue_events])
 
-
 all_events.reset_index(drop=True, inplace=True)
 with open('all_events.pkl', 'wb') as file:
     pickle.dump(all_events, file)

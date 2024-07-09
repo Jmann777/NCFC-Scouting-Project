@@ -1,5 +1,15 @@
 """
-The following file ...
+The following file creates 3 models to predict expected goals in the top 5 European Leagues. The data
+for these models is split into a training and test set (0.9, 0.1) with the split accounting for each
+league.
+The 3 models run process headed shots and non-headed shots and are the following model types:
+ - Logistic Regression Model
+- Random Forest Classifier
+- xGBoost Classifier
+
+The models return expected goal predictions and are evaluated using cross-validated RMSE, Brier,
+and AUC scores. As well as this, the models xG outputs are then compared to statsbomb xG data to
+determine whether the model is of use for scouting this dataset.
 """
 # Importing packages
 import pickle
@@ -21,7 +31,6 @@ with open('../Source/headers.pkl', 'rb') as file:
 with open('../Source/regular_shots.pkl', 'rb') as file:
     regular_shots = pickle.load(file)
 
-# Examining shape for test/train splits
 print("Headers", headers.shape)
 print("Regular", regular_shots.shape)
 
@@ -46,10 +55,9 @@ opp_encode = ['League', 'technique_name', 'shot_first_time', 'play_pattern_name'
               'assist_type', 'under_pressure', 'shot_deflected']
 
 
-# todo change to "league"
-def splits_by_league(data, test_size=0.1):
+def splits_by_league(data: pd.DataFrame, test_size=0.1):
     """
-    Splits the data by league into training, validation, and test sets.
+    Splits the data equally by league into training and test sets.
 
     Parameters:
        - data (pd.DataFrame): Dataframe containing input data for model and data splits
@@ -63,7 +71,7 @@ def splits_by_league(data, test_size=0.1):
     train_frames = []
     test_frames = []
 
-    # Get unique leagues
+    # Get unique leagues to ensure equal splitting
     leagues = data['League'].unique()
 
     for league in leagues:
@@ -74,7 +82,6 @@ def splits_by_league(data, test_size=0.1):
         # Split the data
         train_data, test_data = train_test_split(league_data, test_size=test_size, random_state=123, stratify=y_league)
 
-        # Append to respective lists
         test_frames.append(test_data)
         train_frames.append(train_data)
 
@@ -85,19 +92,18 @@ def splits_by_league(data, test_size=0.1):
     return train_data, test_data
 
 
-def logistic_model(data, x, encode):
+def logistic_model(data: pd.DataFrame, x, encode):
     """
     Fits a logistic regression model with L2 regularization and evaluates its performance.
 
     Parameters:
     - data (pd.DataFrame): Dataframe containing input data for model and data splits
-    - x: The features used as IVs to predict Y
-    - encode: Variables that require one hot encoding
+    - x (list): The features used as IVs to predict Y
+    - encode (list): Variables that require one hot encoding
 
     Returns:
     - xg_values_logistic (np.array): Predicted probabilities for the data.
     """
-    # Loading in and sorting the data
     train_data, test_data = splits_by_league(data, test_size=0.1)
     x_vars = x
     y_var = 'goal_smf'
@@ -129,7 +135,7 @@ def logistic_model(data, x, encode):
     model.fit(x_train_scaled,
               y_train)
 
-    # Cross validation scores
+    # Cross validation and auc scores
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     cv_auc_scores = cross_val_score(model, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
     mean_cv_auc = cv_auc_scores.mean()
@@ -162,20 +168,21 @@ def logistic_model(data, x, encode):
     plt.legend()
     plt.show()
 
+    # Combining training and test data for final xG prediction
     x_data_scaled = pd.concat([x_train_scaled, x_test_scaled])
     xg_values_logistic = model.predict_proba(x_data_scaled)[:, 1]
 
     return xg_values_logistic
 
 
-def random_forest_model(data, x, encode):
+def random_forest_model(data: pd.DataFrame, x, encode):
     """
     Fits a random forest model and evaluates its performance
 
      Parameters:
     - data (pd.Dataframe): Dataframe containing input data for model and data splits
-    - x: The features used as IVs to predict Y
-    - encode: Variables that require one hot encoding
+    - x (list): The features used as IVs to predict Y
+    - encode (list): Variables that require one hot encoding
 
     Returns:
     - Predicted probabilities for the test data.
@@ -212,7 +219,7 @@ def random_forest_model(data, x, encode):
                                         random_state=42,
                                         max_depth=12,
                                         min_samples_split=6
-    )
+                                        )
 
     # Arrays to store the results
     train_accuracy = []
@@ -234,7 +241,7 @@ def random_forest_model(data, x, encode):
         train_error.append(1 - accuracy_score(y_train, y_train_pred))
         test_error.append(1 - accuracy_score(y_test, y_test_pred))
 
-    # Plotting the learning curves
+
     fig, axs = plt.subplots(2, figsize=(10, 12))
 
     # Plotting training history - RMSE
@@ -255,7 +262,7 @@ def random_forest_model(data, x, encode):
 
     plt.show()
 
-    # Cross-validation scores
+    # Cross-validation + auc scores
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     cv_auc_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
     mean_cv_auc = cv_auc_scores.mean()
@@ -295,7 +302,18 @@ def random_forest_model(data, x, encode):
     return xg_values_rf
 
 
-def xGBoost(data, x, encode):  # todo add type hinting
+def xGBoost(data:pd.DataFrame, x, encode):
+    """
+    Fits an xGBoost classifier model and evaluates its performance
+
+     Parameters:
+    - data (pd.Dataframe): Dataframe containing input data for model and data splits
+    - x (list): The features used as IVs to predict Y
+    - encode (list): Variables that require one hot encoding
+
+    Returns:
+    - Predicted probabilities for the test data.
+    """
     x_vars = x
     y_var = 'goal_smf'
     train_data, test_data = splits_by_league(data, test_size=0.1)
@@ -369,7 +387,7 @@ def xGBoost(data, x, encode):  # todo add type hinting
 
     plt.show()
 
-    # Cross-validation scores
+    # Cross-validation + auc scores
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     cv_auc_scores = cross_val_score(classifier, x_test_scaled, y_test, cv=kf, scoring='roc_auc')
     mean_cv_auc = cv_auc_scores.mean()
@@ -449,15 +467,19 @@ headers.reset_index(drop=True, inplace=True)
 with open('headed_shots_output.pkl', 'wb') as file:
     pickle.dump(headers, file)
 
-def statsbomb_comparison(shot_type):
 
-#todo add type hint
-    # Compare my xg to statsbomb
+def statsbomb_comparison(shot_type): #todo review
+    """
+    Compares the model xG predictions against statsbomb's model xG prediction.
+
+     Parameters:
+    - shot_type (pd.Dataframe): Dataframe containing outputted xG values for specified shot type
+    """
     xG_comparison = shot_type[['player_name', 'goal', 'shot_statsbomb_xg', 'our_xg']]
 
     # Calculate absolute errors
     xG_comparison['abs_error_statsbomb'] = np.abs(
-    xG_comparison['goal'] - xG_comparison['shot_statsbomb_xg'])
+        xG_comparison['goal'] - xG_comparison['shot_statsbomb_xg'])
     xG_comparison['abs_error_our_xg'] = np.abs(xG_comparison['goal'] - xG_comparison['our_xg'])
 
     # Calculate Mean Absolute Error (MAE)

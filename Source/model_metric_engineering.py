@@ -115,7 +115,7 @@ def model_metric_setup(shots: pd.DataFrame, shot_assists: pd.DataFrame):
 
     return combined_shots_passes_trees
 
-# Combining shots and passes then filtering to shots only #todo check if i need to do this
+# Combining shots and passes then filtering to shots only
 shot_passes: pd.DataFrame = model_metric_setup(all_shots, key_passes)
 shots_df = shot_passes[shot_passes["type_name"] == "Shot"]
 shots_df = shots_df[shots_df.sub_type_name != "Penalty"]

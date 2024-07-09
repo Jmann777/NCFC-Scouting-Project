@@ -1,4 +1,8 @@
-#todo add file description
+"""
+The following file uses GridSearch to optimise AUC scores for the random forest and xgBoost models in this project
+"""
+
+# todo Sort random forest optimisation
 
 # Importing packages
 import pandas as pd
@@ -11,7 +15,17 @@ from xgboost import XGBClassifier
 
 
 def rndf_optimisation(data, x, encode):
-    #todo add type hints
+    """
+     Optimizes a random forest classifier using GridSearchCV.
+
+     Parameters:
+     - data (pd.DataFrame): Dataframe containing the data for model training and testing
+     - x (List): List of feature column names
+     - encode (List): List of categorical feature column names to be one-hot encoded
+
+     Returns:
+     - optimal_params (GridSearchCV): Fitted GridSearchCV object with the best parameters
+     """
     x_vars = x
     y_var = 'goal_smf'
     train_data, test_data = model.splits_by_league(data, test_size=0.1)
@@ -51,9 +65,9 @@ def rndf_optimisation(data, x, encode):
 
     optimal_params = GridSearchCV(
         estimator=XGBClassifier(objective='binary:logistic',
-                               seed=42,
-                               subsample=0.5,
-                               colsample_bytree=0.5),
+                                seed=42,
+                                subsample=0.5,
+                                colsample_bytree=0.5),
         param_grid=param_grid,
         scoring='roc_auc',
         verbose=0,
@@ -68,8 +82,18 @@ def rndf_optimisation(data, x, encode):
     return optimal_params
 
 
-def xGBoost_optimisation(data, x, encode):
-    #todo add type hints
+def xGBoost_optimisation(data: pd.DataFrame, x, encode):
+    """
+     Optimizes an XGBoost classifier using GridSearchCV.
+
+     Parameters:
+     - data (pd.DataFrame): Dataframe containing the data for model training and testing
+     - x (List): List of feature column names
+     - encode (List): List of categorical feature column names to be one-hot encoded
+
+     Returns:
+     - optimal_params (GridSearchCV): Fitted GridSearchCV object with the best parameters
+     """
     x_vars = x
     y_var = 'goal_smf'
     train_data, test_data = model.splits_by_league(data, test_size=0.1)
@@ -111,9 +135,9 @@ def xGBoost_optimisation(data, x, encode):
 
     optimal_params = GridSearchCV(
         estimator=XGBClassifier(objective='binary:logistic',
-                               seed=42,
-                               subsample=0.5,
-                               colsample_bytree=0.5),
+                                seed=42,
+                                subsample=0.5,
+                                colsample_bytree=0.5),
         param_grid=param_grid,
         scoring='roc_auc',
         verbose=0,
@@ -127,6 +151,6 @@ def xGBoost_optimisation(data, x, encode):
 
     return optimal_params
 
+
 regular_shots_model4_xgbst = xGBoost_optimisation(model.regular_shots, model.opposition_x_other, model.opp_encode)
 
-#todo create for rndm forest
