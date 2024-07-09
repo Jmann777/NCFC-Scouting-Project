@@ -1,3 +1,8 @@
+WORK IN PROGRESS
+
+
+
+
 Intoduction:
 Goal + Context
 Brady = 5.2mil Euro market gain (52% increase in market value)
@@ -25,7 +30,7 @@ What models have I sued and why? What was the output?
 xG, xA, xA from crosses
 Logistical reg
 random forest
-xG boost (maybe)
+xG boost
 
 Model Evaluation:
 Logit - with predicted proibabilities- 
@@ -54,8 +59,6 @@ Conclusion:
 Top 3 targets and why?
 
 
-https://steveaq.github.io/Player-Roles-Clustering/
-https://cartilagefreecaptain.sbnation.com/2015/10/19/9295905/premier-league-projections-and-new-expected-goals
 xg model - https://github.com/Slothfulwave612/xG-Model
 
 model setup:
