@@ -46,6 +46,9 @@ After evaluation, the teammate effect random forest model was used to predict xG
 
 ![Model Scores](https://github.com/user-attachments/assets/6eadc41a-3e4c-4aaa-b374-5099e46c4473)
 
+### Feature Importance
+
+Visualisation to come
 
 ### Model Evaluation
 
