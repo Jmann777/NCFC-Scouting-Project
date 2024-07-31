@@ -15,10 +15,10 @@ from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
 # Opening pickle files for each shot type
-with open('../Source/headers.pkl', 'rb') as file:
+with open('../data_logos/headers.pkl', 'rb') as file:
     headers = pickle.load(file)
 
-with open('../Source/regular_shots.pkl', 'rb') as file:
+with open('../data_logos/regular_shots.pkl', 'rb') as file:
     regular_shots = pickle.load(file)
 
 # Examining shape for test/train splits
@@ -441,12 +441,12 @@ regular_shots_model4_xgbst = xGBoost(regular_shots, opposition_x_other, opp_enco
 # Applying model xG output and saving to pickle
 regular_shots["our_xg"] = regular_shots_model4_xgbst(regular_shots)
 regular_shots.reset_index(drop=True, inplace=True)
-with open('regular_shots_output.pkl', 'wb') as file:
+with open('../data_logos/regular_shots_output.pkl', 'wb') as file:
     pickle.dump(regular_shots, file)
 
 headers["our_xg"] = header_model3_rf(headers)
 headers.reset_index(drop=True, inplace=True)
-with open('headed_shots_output.pkl', 'wb') as file:
+with open('../data_logos/headed_shots_output.pkl', 'wb') as file:
     pickle.dump(headers, file)
 
 def statsbomb_comparison(shot_type):

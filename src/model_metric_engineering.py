@@ -10,10 +10,10 @@ import pandas as pd
 import numpy as np
 
 # Data Import
-with open('../Source/all_shots.pkl', 'rb') as file:
+with open('../data_logos/all_shots.pkl', 'rb') as file:
     all_shots = pickle.load(file)
 
-with open('all_events.pkl', 'rb') as file:
+with open('../data_logos/all_events.pkl', 'rb') as file:
     all_events = pickle.load(file)
 
 passes = all_events[all_events["type_name"] == "Pass"]
@@ -123,10 +123,10 @@ shots_df = shots_df[shots_df.sub_type_name != "Penalty"]
 # Separating shots into headers and non-headers
 headers: pd.DataFrame = shots_df[
     (shots_df["body_part_name"] == "Head")]
-with open('headers.pkl', 'wb') as file:
+with open('../data_logos/headers.pkl', 'wb') as file:
     pickle.dump(headers, file)
 
 regular_shots: pd.DataFrame = shots_df[
     (shots_df["body_part_name"] != "Head")]
-with open('regular_shots.pkl', 'wb') as file:
+with open('../data_logos/regular_shots.pkl', 'wb') as file:
     pickle.dump(regular_shots, file)

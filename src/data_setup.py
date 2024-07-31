@@ -4,7 +4,7 @@ These shot dataframes are saved into a pickle (for computing speed) and are late
 (Data info available at: https://statsbomb.com/news/the-2015-16-big-5-leagues-free-data-release-premier-league/)
 """
 
-from Statsbomb_Data_Manipulations import statsbomb_jm as sbj
+from statsbomb_data_manipulations import statsbomb_jm as sbj
 import pickle
 import pandas as pd
 
@@ -35,9 +35,9 @@ all_events: pd.DataFrame = pd.concat([prem_events, liga_events, bund_events, ser
 
 
 all_events.reset_index(drop=True, inplace=True)
-with open('all_events.pkl', 'wb') as file:
+with open('../data_logos/all_events.pkl', 'wb') as file:
     pickle.dump(all_events, file)
 
 all_shots: pd.DataFrame = all_events.loc[all_events["type_name"] == "Shot"]
-with open('all_shots.pkl', 'wb') as file:
+with open('../data_logos/all_shots.pkl', 'wb') as file:
     pickle.dump(all_shots, file)

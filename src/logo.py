@@ -29,7 +29,7 @@ def watermark(ax, x0, y0):
         - y0: adds y location
     """
 
-    logo = plt.imread('jmann logo.png')
+    logo = plt.imread('../data_logos/jmann logo.png')
     # scale Image
     logo = scale(logo, 150, 150)
 
