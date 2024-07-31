@@ -49,7 +49,7 @@ After evaluation, the teammate effect random forest model was used to predict xG
 
 ### Model Evaluation
 
-After predicting xG through the header and non-header models I ran a cross-comparison between my predicted xG and the statsbomb xG (SB at figure 1). This comparison was run using Mean Absolute Error and Root Means Squared Error. As expected, the statsbomb xG produced closer results to that of actual goals scored and as such was used when evaluating potential player signings (see figure 1). As a result of this, statsbomb xG was subsequently used to identify potential replacements for Brady.
+After predicting xG through the header and non-header models I ran a cross-comparison between my predicted xG and the statsbomb xG (SB at figure 1). This comparison was run using Mean Absolute Error and Root Means Squared Error. As expected, the statsbomb xG produced closer results to that of actual goals scored (see figure 1). As a result scouting prospects were initially evaluated via statsbomb xG data and via my model to ensure there was consistency with the players highlighted as the highest performing. Both the statsbomb model and my model returned the same player recommendations. Thus, my model has been used in the results below.
 
 # Results
 
@@ -61,15 +61,15 @@ Once this filtering was applied, a number of scatter plots were produced to iden
 
 **Figure 2- Scatter plot for xG vs value**
 
-![Scatter plot for xG vs value](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/7e8e07f4-82c2-43f9-a16b-fa52286a75f2)
+![Scatter plot for xG vs value](https://github.com/user-attachments/assets/6f3bb92f-f133-4188-8634-ee6cb90918e1)
 
 **Figure 3- Scatter plot for xA vs value**
 
-![xA Graph NCFC](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/267afb49-0073-4424-8d32-f4562af098c2)
+![xA Graph NCFC](https://github.com/user-attachments/assets/fe8c6d37-3ace-4361-b08a-0ad415892437)
 
 **Figure 4- Scatter plot for combined xG+xA vs value**
 
-![xGA Graph NCFC](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/55dc02b7-f15c-4bc4-b18c-8bcf1860ffc2)
+![xGA Graph NCFC](https://github.com/user-attachments/assets/b79f90ae-5dfa-442c-87c4-dfdb4fa97bea)
 
 ### Top performers
 
@@ -77,7 +77,7 @@ As well as identifying high performance players it is also important to ensure t
 
 **Figure 5- What did Brady's data profile look like?**
 
-![Robbie Brady Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/30b804c7-32a1-4094-91d4-9e11f7227292)
+![Robbie Brady Radar](https://github.com/user-attachments/assets/a690daba-aa7e-4d8c-952f-603d849305cd)
 
 We can see that Brady's attacking output consisted of a high volume of shots, 1v1s and dribbles, crosses attempted and key passes (passes that led to a goal). His attacking data resembles a traditional winger who looks to create for himself and others. As such, this particular profile is the one we are seeking to match/improve upon.
 
@@ -85,19 +85,19 @@ We can see that Brady's attacking output consisted of a high volume of shots, 1v
 
 **Figure 6- Filip Kostic player radar**
 
-![Filip Kostic Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/9721d8e1-55ff-41ec-bf1e-9bda3f764a97)
+![Filip Kostic Radar](https://github.com/user-attachments/assets/5d47dd9b-5dd5-41de-b79e-c5d95b6bc40f)
 
 **Figure 7- Jairo Samperio player radar**
 
-![Jairo Samperio Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/f66a3cc7-4ca3-4800-8ffe-a2f583d469de)
+![Jairo Samperio Radar](https://github.com/user-attachments/assets/792a1b23-4c81-40a6-9331-39c953cfdab5)
 
 **Figure 8- Nicolas Benezet player radar**
 
-![Nicolas Benezet Radar](https://github.com/Jmann777/NCFC-Scouting-Project/assets/87671742/52f6f6bf-96ee-4d1f-8394-fef6187ded08)
+![Nicolas Benezet Radar](https://github.com/user-attachments/assets/b8130e7a-ca92-4a37-bd6e-94f3a3a419bf)
 
-From these radars we can see the player baring the closest resemblance to Brady is Filip Kostic. Kostic displays a high volume of shots, dribbles, key passes, and crosses which mirrors Brady. Accepting the differences in league standards, Kostic also shows a higher quality of finishing than Brady with his xG overperformance being a higher ranking. Of course, it is overly simplistic to assume that Kostic would be the correct fit for NCFC and vice versa, however from the data Kostic would have the potential to be a high value target for the club. 
+From these radars we can see the player baring the closest resemblance to Brady is Filip Kostic. Kostic displays a high volume of shots, dribbles, key passes, and crosses which mirrors Brady. Accepting the differences in league standards, Kostic also shows a higher overall xG+xA contribution as seen in fiure 4. Of course, it is overly simplistic to assume that Kostic would be the correct fit for NCFC and vice versa, however from the data Kostic would have the potential to be a high value target for the club. 
 
-At lower prices, Samperio and Benezet display somewhat similar charactersitics to Brady, but underperform in certain areas. Samperio's play seems more orientated to an inside winger due to his low volume of crosses whilst Benezet attempts less dribbles and 1v1s than Brady. These players show potential to eb lower budget options to Brady, but do not currently perform at the level to fully replace Brady's contributions.
+At lower prices, Samperio and Benezet display somewhat similar charactersitics to Brady, but underperforms in certain areas. Samperio's play seems more orientated to an inside winger due to his low volume of crosses whilst Benezet attempts less dribbles and 1v1s than Brady. These players show potential to be lower budget options to Brady, but do not currently perform at the level to fully replace Brady's contributions.
 
 # Challenges + Improvements
 - Lack of data (General data, tracking data). If there was more available data, we could train a more complex model (including tracking data) on a larger amount of data. This would likely lead to better predictive scores.
