@@ -1,6 +1,6 @@
 # Introduction
 
-xG (expected goals) is a metric used within football to describe the probability of shot converting into a goal. The following project seeks to experimentally build 4 xG models to identify potential scouting targets that Norwich City could have considered when they were required to replace Robbie Brady after his departure from the club. The 4 models were run through logistic regression, random forest classification, and xGboost classification.
+The following project assesses and evaluates model performance for xG prediction based on 4 models run across logisitic regression, random froest classification, and XGboost classification. The model was trained on 2015/16 top 5 European League event data provided by Statsbomb. Once selected, the final model is applied alongside other performance metrics to simplistically profile replacements for Robbie Brady after his transfer from Norwich in 2016.
 
 # Setup
 
