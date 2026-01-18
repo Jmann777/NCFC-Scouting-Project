@@ -1,6 +1,6 @@
 # Introduction
 
-The following project assesses and evaluates model performance for xG prediction based on 4 models run across logisitic regression, random froest classification, and XGboost classification. The model was trained on 2015/16 top 5 European League event data provided by Statsbomb. Once selected, the final model is applied alongside other performance metrics to simplistically profile replacements for Robbie Brady after his transfer from Norwich in 2016.
+The following project assesses and evaluates model performance for xG prediction based on 4 models run across logisitic regression, random froest classification, and XGboost classification. The model was trained on 2015/16 top 5 European League event data provided by Statsbomb.
 
 # Setup
 
@@ -54,56 +54,3 @@ Visualisation to come
 
 After predicting xG through the header and non-header models I ran a cross-comparison between my predicted xG and the statsbomb xG (SB at figure 1). This comparison was run using Mean Absolute Error and Root Means Squared Error. As expected, the statsbomb xG produced closer results to that of actual goals scored (see figure 1). As a result scouting prospects were initially evaluated via statsbomb xG data and via my model to ensure there was consistency with the players highlighted as the highest performing. Both the statsbomb model and my model returned the same player recommendations. Thus, my model has been used in the results below.
 
-# Results
-
-### Application of results to identify scouting prospects
-
-To identify potential replacements for Robbie Brady it was important to filter the players within the dataset by position and provide a close comparative analysis between Brady and the potential replacements. Furthermore, it was important to provide standardised metrics (per 90 stats) and scout realistic targets (players for a similar/lower value than Brady), which is where player valuation and minutes played data were used. As such, the overall player dataset was narrowed down to left midfielders / left wingers who were valued under €10 million and matched a similar age profile to Brady.
-
-Once this filtering was applied, a number of scatter plots were produced to identify the exceptional performers in each metric based on the xG calculations. These included xG vs value, xA vs value and combined xG + xA vs value:
-
-**Figure 2- Scatter plot for xG vs value**
-
-![Scatter plot for xG vs value](https://github.com/user-attachments/assets/6f3bb92f-f133-4188-8634-ee6cb90918e1)
-
-**Figure 3- Scatter plot for xA vs value**
-
-![xA Graph NCFC](https://github.com/user-attachments/assets/fe8c6d37-3ace-4361-b08a-0ad415892437)
-
-**Figure 4- Scatter plot for combined xG+xA vs value**
-
-![xGA Graph NCFC](https://github.com/user-attachments/assets/b79f90ae-5dfa-442c-87c4-dfdb4fa97bea)
-
-### Top performers
-
-As well as identifying high performance players it is also important to ensure that these players fit with the playing philosophy required to replace Brady. As this is an external project it is assumed that replacement performances must mirror the playstyle of Brady or at least closely compare. To identify this, player radars were created for Brady and similar top performing players.
-
-**Figure 5- What did Brady's data profile look like?**
-
-![Robbie Brady Radar](https://github.com/user-attachments/assets/a690daba-aa7e-4d8c-952f-603d849305cd)
-
-We can see that Brady's attacking output consisted of a high volume of shots, 1v1s and dribbles, crosses attempted and key passes (passes that led to a goal). His attacking data resembles a traditional winger who looks to create for himself and others. As such, this particular profile is the one we are seeking to match/improve upon.
-
-**Which players look similar/better?**
-
-**Figure 6- Filip Kostic player radar**
-
-![Filip Kostic Radar](https://github.com/user-attachments/assets/5d47dd9b-5dd5-41de-b79e-c5d95b6bc40f)
-
-**Figure 7- Jairo Samperio player radar**
-
-![Jairo Samperio Radar](https://github.com/user-attachments/assets/792a1b23-4c81-40a6-9331-39c953cfdab5)
-
-**Figure 8- Nicolas Benezet player radar**
-
-![Nicolas Benezet Radar](https://github.com/user-attachments/assets/b8130e7a-ca92-4a37-bd6e-94f3a3a419bf)
-
-From these radars we can see the player baring the closest resemblance to Brady is Filip Kostic. Kostic displays a high volume of shots, dribbles, key passes, and crosses which mirrors Brady. Accepting the differences in league standards, Kostic also shows a higher overall xG+xA contribution as seen in fiure 4. Of course, it is overly simplistic to assume that Kostic would be the correct fit for NCFC and vice versa, however from the data Kostic would have the potential to be a high value target for the club. 
-
-At lower prices, Samperio and Benezet display somewhat similar charactersitics to Brady, but underperforms in certain areas. Samperio's play seems more orientated to an inside winger due to his low volume of crosses whilst Benezet attempts less dribbles and 1v1s than Brady. These players show potential to be lower budget options to Brady, but do not currently perform at the level to fully replace Brady's contributions.
-
-# Challenges + Improvements
-- Lack of data (General data, tracking data). If there was more available data, we could train a more complex model (including tracking data) on a larger amount of data. This would likely lead to better predictive scores.
-- Transfermarkt valuation data is market valuation estimates only. 
-- Lack of playing model for NCFC. As discussed, we would need to take playing + transfer philosophy into account when considering scouting prospects.
-- Lack of time available to develop the model due to work commitments. Both of the models could be further refined through optimisation purposes, however due to the time limitation of this project they are somewhat stunted.
